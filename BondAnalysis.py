@@ -1,114 +1,127 @@
+import os
 import numpy as np
+import time
 
-def read_xyz(filename):
-    with open(filename, 'r') as file:
-        lines = file.readlines()
-        num_atoms = int(lines[0])
-        atom_data = lines[2:2+num_atoms]
-        atom_types = []
-        coordinates = []
-        for line in atom_data:
-            parts = line.split()
-            atom_types.append(parts[0])
-            coordinates.append(list(map(float, parts[1:4])))
-        return atom_types, np.array(coordinates)
+bond_topology_file = "oh_bond_topology.txt"
+split_steps_folder = "split_steps"
+log_file_path = "Bond_Analysis_Log.txt"
+file_list_path = "Identified_Files_List.txt"
 
-def calculate_distance(coord1, coord2, box=None):
-    diff = coord1 - coord2
-    if box is not None:
-        diff -= np.round(diff / box) * box  # corrects for PBCs that affect boundary molecules
-    return np.linalg.norm(diff)
+start_time = time.time()
 
-def calculate_angle(vec1, vec2):
-    cos_theta = np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-    return np.degrees(np.arccos(np.clip(cos_theta, -1.0, 1.0)))
+# Count number of atoms (lines) in topology file, skipping header
+with open(bond_topology_file, "r") as topo_file:
+    next(topo_file)  # skip header
+    num_atoms = sum(1 for _ in topo_file)
 
-def analyze_ooo_angles(atom_types, coordinates, cutoff_radius, box=None):
-    oxygen_indices = [i for i, atom in enumerate(atom_types) if atom == 'O']
-    results = []
+with open(log_file_path, "a") as log_file:
+    log_file.write(f"Number of atoms (Oxygen atoms counted) in bond topology: {num_atoms}\n")
 
-    for i in oxygen_indices:
-        neighbors = []
-        for j in oxygen_indices:
-            if i != j:
-                dist = calculate_distance(coordinates[i], coordinates[j], box)
-                if dist <= cutoff_radius:
-                    neighbors.append((j, coordinates[j]))
+# Identify all split_step files
+split_files = sorted(
+    (f for f in os.listdir(split_steps_folder) if f.startswith("split_step_")),
+    key=lambda x: int(x.split("_")[-1])
+)
+num_frames = len(split_files)
 
-        # Ensure triplets are unique and no duplicate angles are calculated
-        for k in range(len(neighbors)):
-            for l in range(k + 1, len(neighbors)):
-                if neighbors[k][0] < neighbors[l][0]:  # Ensure uniqueness by ordering the pair
-                    vec1 = neighbors[k][1] - coordinates[i]
-                    vec2 = neighbors[l][1] - coordinates[i]
-                    if box is not None:
-                        vec1 -= np.round(vec1 / box) * box
-                        vec2 -= np.round(vec2 / box) * box
-                    angle = calculate_angle(vec1, vec2)
-                    results.append((i, angle))
+with open(log_file_path, "a") as log_file:
+    log_file.write(f"Number of split step files identified: {num_frames}\n")
 
-    with open('ooo_bond_angles.txt', 'w') as file:
-        for atom_id, angle in results:
-            file.write(f"{atom_id} {angle:.2f}\n")
+with open(file_list_path, "w") as list_file:
+    for filename in split_files:
+        list_file.write(f"{filename}\n")
 
-    print(f"Total OOO angles calculated: {len(results)}")
+def read_xyz_file(xyz_file_path):
+    with open(xyz_file_path, 'r') as f:
+        lines = f.readlines()
 
-def analyze_oh_bond_lengths_and_hoh_angles(atom_types, coordinates, oh_cutoff_radius, hoh_cutoff_radius, box=None):
-    """
-    Analyzes O-H bond lengths and H-O-H bond angles and writes them to files.
-    """
-    oxygen_indices = [i for i, atom in enumerate(atom_types) if atom == 'O']
-    hydrogen_indices = [i for i, atom in enumerate(atom_types) if atom == 'H']
-    bond_lengths = []
-    hoh_angles = []
+    num_atoms = int(lines[0].strip())
+    cell_dimensions = np.array(list(map(float, lines[1].strip().split())))
 
-    for i in oxygen_indices:
-        neighbors = []
-        for j in hydrogen_indices:
-            dist = calculate_distance(coordinates[i], coordinates[j], box)
-            if dist <= oh_cutoff_radius:
-                neighbors.append((j, dist))
-        
-        if len(neighbors) == 2:
-            neighbors.sort(key=lambda x: x[1])  # Sort by distance
-            h1_id, h1_dist = neighbors[0]
-            h2_id, h2_dist = neighbors[1]
-            bond_lengths.append((i, h1_dist, h2_dist))
+    atom_coords = {}
+    for line in lines[2:2 + num_atoms]:
+        parts = line.split()
+        atom_id = int(parts[0])
+        coord = np.array([float(parts[2]), float(parts[3]), float(parts[4])])
+        atom_coords[atom_id] = coord
 
-            vec1 = coordinates[h1_id] - coordinates[i]
-            vec2 = coordinates[h2_id] - coordinates[i]
-            if box is not None:
-                vec1 -= np.round(vec1 / box) * box
-                vec2 -= np.round(vec2 / box) * box
-            angle = calculate_angle(vec1, vec2)
-            hoh_angles.append((i, angle))  # Store oxygen ID with angle
-        elif len(neighbors) != 2:
-            print(f"Skipping Oxygen {i} (found {len(neighbors)} hydrogens)")
+    return atom_coords, cell_dimensions
 
-    with open('oh_bond_lengths.txt', 'w') as file:
-        for atom_id, h1_dist, h2_dist in bond_lengths:
-            file.write(f"{atom_id} {h1_dist:.3f} {h2_dist:.3f}\n")
-    
-    with open('hoh_angles.txt', 'w') as file:
-        for oxygen_id, angle in hoh_angles:
-            file.write(f"{oxygen_id} {angle:.2f}\n")
-    
-    print(f"Total valid molecules: {len(bond_lengths)}")
-    print(f"Total HOH angles calculated: {len(hoh_angles)}")
+def read_bond_topology(topology_path):
+    triplets = []
+    with open(topology_path, 'r') as f:
+        next(f)  # skip header
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) == 3:
+                triplets.append(tuple(map(int, parts)))
+    return np.array(triplets, dtype=int)
+
+def analyze_frame(atom_coords, bond_triplets):
+    n = len(bond_triplets)
+    hoh_angles = np.empty(n)
+    oh1_lengths = np.empty(n)
+    oh2_lengths = np.empty(n)
+
+    for i, triplet in enumerate(bond_triplets):
+        o_id, h1_id, h2_id = triplet
+
+        if o_id in atom_coords and h1_id in atom_coords and h2_id in atom_coords:
+            o = atom_coords[o_id]
+            h1 = atom_coords[h1_id]
+            h2 = atom_coords[h2_id]
+
+            v1 = h1 - o
+            v2 = h2 - o
+
+            oh1 = np.linalg.norm(v1)
+            oh2 = np.linalg.norm(v2)
+            cos_theta = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+            angle = np.degrees(np.arccos(np.clip(cos_theta, -1.0, 1.0)))
+
+            hoh_angles[i] = angle
+            oh1_lengths[i] = oh1
+            oh2_lengths[i] = oh2
+        else:
+            hoh_angles[i] = np.nan
+            oh1_lengths[i] = np.nan
+            oh2_lengths[i] = np.nan
+
+    return hoh_angles, oh1_lengths, oh2_lengths
 
 
+bond_triplets = read_bond_topology(bond_topology_file)
+num_mols = len(bond_triplets)
 
-if __name__ == "__main__":
-    ocentric_file = "18kbar only O.xyz"
-    h2o_file = "18kbar.xyz"
-    box_dimensions = np.array([51.369529, 58.843018, 54.508783])  #Maybe feed it lmp structure to convert to xyz or some shit
-    ocentric_atom_types, ocentric_coordinates = read_xyz(ocentric_file)
-    analyze_ooo_angles(ocentric_atom_types, ocentric_coordinates, cutoff_radius=2.75, box=box_dimensions)
-    h2o_atom_types, h2o_coordinates = read_xyz(h2o_file)
-    analyze_oh_bond_lengths_and_hoh_angles(
-        h2o_atom_types,
-        h2o_coordinates,
-        oh_cutoff_radius=1.2,
-        hoh_cutoff_radius=1.2,
-        box=box_dimensions
-    )
+header = "timestep " + " ".join(f"mol{j}" for j in range(num_mols)) + "\n"
+
+with open("HOH.txt", "w") as hoh_file, \
+     open("OH1.txt", "w") as oh1_file, \
+     open("OH2.txt", "w") as oh2_file:
+
+    hoh_file.write(header)
+    oh1_file.write(header)
+    oh2_file.write(header)
+
+    for i, filename in enumerate(split_files):
+        file_path = os.path.join(split_steps_folder, filename)
+        atom_coords, _ = read_xyz_file(file_path)
+
+        hoh_vals, oh1_vals, oh2_vals = analyze_frame(atom_coords, bond_triplets)
+
+        hoh_line = f"{i} " + " ".join(f"{val:.5f}" for val in hoh_vals) + "\n"
+        oh1_line = f"{i} " + " ".join(f"{val:.5f}" for val in oh1_vals) + "\n"
+        oh2_line = f"{i} " + " ".join(f"{val:.5f}" for val in oh2_vals) + "\n"
+
+        hoh_file.write(hoh_line)
+        oh1_file.write(oh1_line)
+        oh2_file.write(oh2_line)
+
+        with open(log_file_path, "a") as log_file:
+            log_file.write(f"Processed file: {filename}\n")
+
+end_time = time.time()
+elapsed = end_time - start_time
+
+with open(log_file_path, "a") as log_file:
+    log_file.write(f"Total processing time: {elapsed:.2f} seconds\n")

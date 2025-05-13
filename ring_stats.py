@@ -80,7 +80,7 @@ for pair in my_pairs:
                 plane_coeff = fit_plane(boundary_points)
                 flatness = calculate_flatness(boundary_points, plane_coeff)
                 output_data.append((num_atoms, ring_size, flatness, pair_type))
-    except (TypeError, AssertionError, homcloud.interface.exceptions.VolumeNotFound):
+    except (TypeError, AssertionError, homcloud.interface.exceptions.VolumeNotFound): #except cases are specifically to handle to memory leak that I think exists in homcloud
         continue
 
 # Gather results from all processes

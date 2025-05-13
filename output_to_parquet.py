@@ -21,4 +21,4 @@ for input_file in input_files:
             chunk.to_parquet(output_file, engine=parquet_engine, index=False)
             first_chunk = False
         else:
-            chunk.to_parquet(output_file, engine=parquet_engine, index=False, append=True)
+            chunk.to_parquet(output_file, engine=parquet_engine, index=False, append=True, compression='snappy')

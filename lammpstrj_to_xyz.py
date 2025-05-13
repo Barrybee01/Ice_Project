@@ -8,7 +8,7 @@ def unscale_coordinates(xs, ys, zs, box_bounds):
     return x, y, z
 
 def compute_lattice_params(box_bounds):
-    """Compute lattice params from box bounds."""
+    """Compute lattice parameters (a, b, c, alpha, beta, gamma) from box bounds."""
     xlo, xhi, xy = box_bounds[0]
     ylo, yhi, xz = box_bounds[1]
     zlo, zhi, yz = box_bounds[2]
@@ -30,42 +30,44 @@ def compute_lattice_params(box_bounds):
     
     return a, b, c, alpha, beta, gamma
 
-
 def convert_to_xyz(lammps_dump_file, xyz_file):
     with open(lammps_dump_file, 'r') as infile, open(xyz_file, 'w') as outfile:
         while True:
-            # Read the TIMESTEP line
             timestep = infile.readline().strip()
             if not timestep:
                 break  # End of file
-            
-            infile.readline()  # Skip the actual timestep value line
-            
+
+            infile.readline()  # Skip timestep value
+
             infile.readline()  # Skip "ITEM: NUMBER OF ATOMS"
-            num_atoms = int(infile.readline().strip())  # Read the number of atoms
-            
+            num_atoms = int(infile.readline().strip())
+
             infile.readline()  # Skip "ITEM: BOX BOUNDS"
             box_bounds = [list(map(float, infile.readline().strip().split())) for _ in range(3)]
-            
+
             a, b, c, alpha, beta, gamma = compute_lattice_params(box_bounds)
-            
-            infile.readline()  # Skip "ITEM: ATOMS" line
+
+            infile.readline()  # Skip "ITEM: ATOMS id type xs ys zs"
+
             outfile.write(f"{num_atoms}\n")
             outfile.write(f"{a:.6f} {b:.6f} {c:.6f} {alpha:.6f} {beta:.6f} {gamma:.6f}\n")
-            
+
             for _ in range(num_atoms):
                 data = infile.readline().strip().split()
+                atom_id = data[0]
                 atom_type = data[1]
                 xs, ys, zs = map(float, data[2:5])
                 x, y, z = unscale_coordinates(xs, ys, zs, box_bounds)
-                
-                atom_type = 'O' if atom_type == '1' else 'H' if atom_type == '2' else atom_type
-                outfile.write(f"{atom_type} {x:.6f} {y:.6f} {z:.6f}\n")
 
+                atom_type = 'O' if atom_type == '1' else 'H' if atom_type == '2' else atom_type
+                outfile.write(f"{atom_id} {atom_type} {x:.6f} {y:.6f} {z:.6f}\n")
 
 if __name__ == "__main__":
     lammps_dump_file = "dump.lammpstrj"
     xyz_file = "xyz_trj.xyz"
+    
+    convert_to_xyz(lammps_dump_file, xyz_file)
+    print(f"Conversion complete. XYZ file saved as {xyz_file}.")
     
     convert_to_xyz(lammps_dump_file, xyz_file)
     print(f"Conversion complete. XYZ file saved as {xyz_file}.")

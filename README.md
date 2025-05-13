@@ -15,3 +15,6 @@ ring_stats.py employs the Homcloud library to perform topological data analysis 
 
 
 bond_map.py will read a lammps compatable structure file and produce a text file with all of the bonding information. Namely, it stores the atom IDs for every bond in the structure
+
+
+output_to_parquet.py is a script that will take the large space delimited text files made by the bond analysis code and convert it to a parquet file. These files are very helpful for column-oriented data and is able to be read in chunks when handling large data sets.

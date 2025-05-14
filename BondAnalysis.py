@@ -31,12 +31,44 @@ with open(file_list_path, "w") as list_file:
     for filename in split_files:
         list_file.write(f"{filename}\n")
 
+def lattice_parameters_to_box_matrix(a, b, c, alpha_deg, beta_deg, gamma_deg):
+    alpha = np.radians(alpha_deg)
+    beta = np.radians(beta_deg)
+    gamma = np.radians(gamma_deg)
+
+    v_x = a
+    v_y = b * np.cos(gamma)
+    v_z = c * np.cos(beta)
+
+    v_yz = b * np.sin(gamma)
+    v_zy = (c * (np.cos(alpha) - np.cos(beta) * np.cos(gamma))) / np.sin(gamma)
+    v_zz = np.sqrt(c**2 - v_z**2 - v_zy**2)
+
+    return np.array([
+        [v_x, 0.0, 0.0],
+        [v_y, v_yz, 0.0],
+        [v_z, v_zy, v_zz]
+    ])
+
+def calculate_distance(coord1, coord2, box_matrix):
+    delta = coord1 - coord2
+    inv_box = np.linalg.inv(box_matrix)
+    fractional = inv_box @ delta
+    fractional -= np.round(fractional)
+    corrected = box_matrix @ fractional
+    return corrected
+
+
 def read_xyz_file(xyz_file_path):
     with open(xyz_file_path, 'r') as f:
         lines = f.readlines()
 
     num_atoms = int(lines[0].strip())
-    cell_dimensions = np.array(list(map(float, lines[1].strip().split())))
+    lattice_parts = list(map(float, lines[1].strip().split()))
+    if len(lattice_parts) != 6:
+        raise ValueError("Expected 6 lattice parameters: a, b, c, alpha, beta, gamma")
+    a, b, c, alpha, beta, gamma = lattice_parts
+    box_matrix = lattice_parameters_to_box_matrix(a, b, c, alpha, beta, gamma)
 
     atom_coords = {}
     for line in lines[2:2 + num_atoms]:
@@ -45,7 +77,7 @@ def read_xyz_file(xyz_file_path):
         coord = np.array([float(parts[2]), float(parts[3]), float(parts[4])])
         atom_coords[atom_id] = coord
 
-    return atom_coords, cell_dimensions
+    return atom_coords, box_matrix
 
 def read_bond_topology(topology_path):
     triplets = []
@@ -71,8 +103,8 @@ def analyze_frame(atom_coords, bond_triplets):
             h1 = atom_coords[h1_id]
             h2 = atom_coords[h2_id]
 
-            v1 = h1 - o
-            v2 = h2 - o
+            v1 = calculate_distance(h1, o, box)
+            v2 = calculate_distance(h2, o, box)
 
             oh1 = np.linalg.norm(v1)
             oh2 = np.linalg.norm(v2)

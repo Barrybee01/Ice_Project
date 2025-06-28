@@ -1,3 +1,5 @@
+# Author: Rielly Castle
+
 import pyarrow
 import pandas as pd
 import fastparquet

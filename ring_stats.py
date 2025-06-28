@@ -1,3 +1,5 @@
+# Author: Rielly Castle
+
 import ase
 import ase.io
 import homcloud.interface as hc

@@ -1,5 +1,5 @@
-# Ice_Project
-Contains the important python scripts used to post-process LAMMPS trajectories used in my Master's project
+# Ice and Water Project
+Contains the important python scripts used to post-process LAMMPS trajectories used in my Master's and PhD project
 
 
 LAMMPS_to_XYZ_converter.py will take in a lammpstrj trajectory file from LAMMPS simulations and will convert each timestep in the original trajectory to XYZ format. This can be uploaded to software that requires or accepts an XYZ trajectory format. Alternatively, the trajectory can be externally sliced into individual timesteps.
@@ -20,3 +20,9 @@ bond_map.py will read a lammps compatable structure file and produce a text file
 
 
 output_to_parquet.py is a script that will take the large space delimited text files made by the bond analysis code and convert it to a parquet file. These files are very helpful for column-oriented data and is able to be read in chunks when handling large data sets.
+
+
+fft_parquet_HOH.py takes the time series in the columns of the parquet files and performs an FFT on the data. The FFT output is written to an HDF5 file.
+
+
+fft_sum.py reads the FFT output in the HDF5 file and sums the columns together. The summed FFT spectrum is written to a text file.

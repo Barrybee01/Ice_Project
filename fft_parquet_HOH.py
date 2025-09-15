@@ -6,7 +6,7 @@ import h5py
 
 # Constants
 c_cm_per_s = 2.99792458e10  # Speed of light in cm/s
-fs_to_s = 1e-15  # Femtosecond to second
+fs_to_s = 1e-15  
 
 # FFT function
 def compute_fft_wavenumbers(t_fs, signal):

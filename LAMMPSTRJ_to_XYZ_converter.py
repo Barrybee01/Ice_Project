@@ -1,3 +1,5 @@
+#Author: Rielly Castle
+
 import os
 import numpy as np
 import glob
@@ -48,5 +50,6 @@ def convert_to_xyz(lammps_dump_file, xyz_file):
                     atom_type = 'O'
                 elif atom_type == '2':
                     atom_type = 'H'
+
 
                 outfile.write(f"{atom_type} {x:.6f} {y:.6f} {z:.6f}\n")

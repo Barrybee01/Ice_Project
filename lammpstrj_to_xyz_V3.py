@@ -1,3 +1,5 @@
+#Author: Rielly Castle
+
 import numpy as np
 
 def unscale_coordinates(xs, ys, zs, box_bounds):

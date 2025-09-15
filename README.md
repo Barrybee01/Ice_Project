@@ -4,6 +4,8 @@ Contains the important python scripts used to post-process LAMMPS trajectories u
 
 LAMMPS_to_XYZ_converter.py will take in a lammpstrj trajectory file from LAMMPS simulations and will convert each timestep in the original trajectory to XYZ format. This can be uploaded to software that requires or accepts an XYZ trajectory format. Alternatively, the trajectory can be externally sliced into individual timesteps.
 
+lammpstrj_to_xyz_V3.py will take in an individual frame of a lammpstrj trajectory file and convert it into a modified XYZ format. The main difference between this file format and the LAMMPS_to_XYZ_converter.py formatting is that the supercell dimensions are stored in the comment line. This script also indexes atom types as numbers instead of letters, similar to LAMMPS structure files.
+
 
 BondAnalysis.py performs bond length and bond angle analysis of solid water systems. Of particular interest are the OH bond lengths, the OOO angle, and the HOH angle. This script requires a structure file in the modified XYZ format made by lammpstrj_to_xyz.py. This script will produce a file similar to a lammps dump file where all of the temporal bonding information will be logged for every molecule within the supercell. This will likely produce large files.
 

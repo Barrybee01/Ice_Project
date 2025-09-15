@@ -1,3 +1,5 @@
+#Author: Rielly Castle
+
 import numpy as np
 import pyarrow.parquet as pq
 import h5py
@@ -24,7 +26,7 @@ def preprocess_signal(signal):
     return signal
 
 # Input/output paths
-parquet_path = "HOH.parquet"
+parquet_path = "HOH.parquet" #arbitrary names
 output_h5_path = "HOHtest_fft_results.h5"
 
 # Open Parquet file

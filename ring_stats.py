@@ -8,21 +8,27 @@ import numpy as np
 import pandas as pd
 import scipy
 from mpi4py import MPI
+from shapely.geometry import Point, Polygon
 
 # MPI Initialization
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()  # Process rank
 size = comm.Get_size()  # Total number of processes
 
-pd1 = hc.PDList("35kbar_H2O_weighted.pdgm").dth_diagram(1)
+pd1 = hc.PDList("35kbar_H2O_weighted.pdgm").dth_diagram(1) #change pdgm file as needed
+print('The pdgm file has been read') #for log file
 
 R_H = 0.775
 R_O = 0.175
 
-birth_min, birth_max = 0.3, 0.75
-death_min, death_max = 1.1, 4.0
+#Rectangular mask, uncomment and change relevant_pairs variable if this needs to be used
+#birth_min, birth_max = 0.3, 0.75
+#death_min, death_max = 1.1, 4.0
+from shapely.geometry import Point, Polygon
+HDA_maskcoords_H1 = ([0.5, 1.2], [0.6, 1.25], [0.7, 1.35], [0.75, 1.6], [0.75, 2.9], [0.5, 3.6], [0.25, 3.3], [0.25, 1.2]) #vertices of polygon mask, adjust when needed
 max_atoms = 30
 batch_size = 1
+print(f'The maximum number of atoms accepted in a ring is {max_atoms}') #For log file to track job status
 
 def fit_plane(points):
     A = np.c_[points[:, 0], points[:, 1], np.ones(points.shape[0])]
@@ -44,9 +50,12 @@ def calculate_flatness(points, plane_coeff):
     degree_of_flatness = total_distance / len(points)
     return degree_of_flatness
 
+#Build polygon mask
+polygon = Polygon(HDA_maskcoords_H1)
+
 # Filter relevant pairs
-relevant_pairs = [pair for pair in pd1.pairs()
-                  if birth_min <= pair.birth <= birth_max and death_min <= pair.death <= death_max]
+relevant_pairs = [pair for pair in pd1.pairs() if polygon.contains(Point(pair.birth, pair.death))]
+print(f'The total number of pairs in this characteristic region is {len(relevant_pairs})') #for log file
 
 # Distribute workload among processes
 total_pairs = len(relevant_pairs)

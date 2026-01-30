@@ -53,3 +53,8 @@ def convert_to_xyz(lammps_dump_file, xyz_file):
 
 
                 outfile.write(f"{atom_type} {x:.6f} {y:.6f} {z:.6f}\n")
+
+if __name__ == "__main__":
+    lammps_dump_file = "dump.lammpstrj"
+    xyz_file = "dump_trj.xyz"
+    convert_to_xyz(lammps_dump_file, xyz_file)

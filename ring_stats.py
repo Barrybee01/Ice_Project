@@ -25,6 +25,7 @@ R_O = 0.175
 #birth_min, birth_max = 0.3, 0.75
 #death_min, death_max = 1.1, 4.0
 from shapely.geometry import Point, Polygon
+#COMMENT OUT BELOW LINE IF USING FULL PD
 HDA_maskcoords_H1 = ([0.5, 1.2], [0.6, 1.25], [0.7, 1.35], [0.75, 1.6], [0.75, 2.9], [0.5, 3.6], [0.25, 3.3], [0.25, 1.2]) #vertices of polygon mask, adjust when needed
 max_atoms = 30
 batch_size = 1
@@ -50,11 +51,35 @@ def calculate_flatness(points, plane_coeff):
     degree_of_flatness = total_distance / len(points)
     return degree_of_flatness
 
+def compute_apf(pairs): #Calculates cumulative lifetime of PD features
+    apf_data = []
+
+    for pair in pairs:
+        b = pair.birth
+        d = pair.death
+        m = 0.5 * (b + d)
+        persistence = d - b
+        apf_data.append((m, persistence))
+
+    apf_data.sort(key=lambda x: x[0])
+
+    times = []
+    apf_values = []
+    running_sum = 0.0
+
+    for m, persistence in apf_data:
+        running_sum += persistence
+        times.append(m)
+        apf_values.append(running_sum)
+
+    return np.array(times), np.array(apf_values)
+
 #Build polygon mask
 polygon = Polygon(HDA_maskcoords_H1)
 
 # Filter relevant pairs
 relevant_pairs = [pair for pair in pd1.pairs() if polygon.contains(Point(pair.birth, pair.death))]
+#relevent_pairs = list(pd1.pairs()) #TOGGLE ON IF USING FULL PD 
 print(f'The total number of pairs in this characteristic region is {len(relevant_pairs})') #for log file
 
 # Distribute workload among processes
@@ -104,3 +129,11 @@ if rank == 0:
             for atom_count, ring_size, flatness, pair_type in proc_data:
                 f.write(f"{atom_count},{ring_size:.6f},{flatness:.6f},{pair_type}\n")
     print(f"Finished processing. Results saved to 'ring_stats.txt'.")
+
+    # Compute and save APF for the same accepted characteristic region
+    apf_times, apf_values = compute_apf(relevant_pairs)
+    with open("APF_output.txt", "w") as f_apf:
+        for t, apf in zip(apf_times, apf_values):
+            f_apf.write(f"{t:.6f},{apf:.6f}\n")
+    print("APF results saved to 'APF_output.txt'.")
+

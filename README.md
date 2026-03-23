@@ -13,8 +13,11 @@ BondAnalysis.py performs bond length and bond angle analysis of solid water syst
 supercell_subdividor_GPU_boosted.py reads in a structure file in XYZ format and subdivide the cell into equal subdivisions using the supercell dimensions. This is a template script and can be used for any kind of local structural analysis. An excellent example would be to use this script in conjunction with the bond angle analysis to look at local fluctuations of these properties. This script can also be used for local density calculations. GPU support has been added to make the script faster when using very large supercells
 
 
-ring_stats.py employs the Homcloud library to perform topological data analysis of ice structures. The input structure needs to be in XYZ format. Homcloud will calculate the various ring features that emerge through 1D persistent homology calculations. This script will take the homcloud output and process it further. The output of the script are statistics about the population of atoms within the rings, the ring size, and the degree of ring flatness. This script takes the pairs found within a rectangular region of the PD. This script is slow and requires parallelization (which has been implemented with mpi4py)
-
+ring_stats.py employs the Homcloud library to perform topological data analysis of ice structures. The input structure needs to be in XYZ format. Homcloud will calculate the various ring features that emerge through 1D persistent homology calculations. This script will take the homcloud output and process it further. The output of the script is statistics about the population of atoms within the rings, the ring size, and the degree of ring flatness. This script takes the pairs found within a rectangular region of the PD. This script requires parallelization (which has been implemented with mpi4py).
+  This script has been updated to include a calculation that determines the cumulative lifetime of a PD or PD region
+  The script now includes the possibility to toggle to analyze the full PD, or a user-defined masked region, with options of a rectangular mask or a polygon mask
+  The script will soon be updated to be less restrictive. Currently, the script needs a pdgm file to perform the rest of the analysis. This will be made to only require an XYZ file.
+  
 
 bond_map.py will read a lammps compatable structure file and produce a text file with all of the bonding information. Namely, it stores the atom IDs for every bond in the structure
 

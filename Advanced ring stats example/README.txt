@@ -11,7 +11,7 @@ DEPENDENCIES:
   - Wheel, Cython, panel
   - pyqt5, pyqt6, pyvistaqt, pyvista
   - ase, ripser, py3Dmol, ase.io
-  - homcloud
+  - homcloud 4.8.0
   - h5py
   - os, io, sys, glob, tarfile
   - mpi4py

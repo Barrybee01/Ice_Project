@@ -12,7 +12,6 @@ Q_rng = np.arange(0,8,1000) #probably won't need to go out as far as 8
 columns = {col: df[col].dropna().values for col in df.columns}
 
 all_deltas = np.concatenate(list(columns.values()))
-all_deltas = all_deltas[all_deltas > 0]
 
 mus = 2 * np.pi / all_deltas
 
@@ -30,10 +29,6 @@ def S_star(Q, deltas, sigma=0.05):
 rows = []
 
 for name, deltas in columns.items():
-    deltas = deltas[deltas > 0]
-    if len(deltas) == 0:
-        continue
-
     y = S_star(Q, deltas, sigma)
 
     for q, val in zip(Q, y):

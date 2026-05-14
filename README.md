@@ -26,7 +26,8 @@ Vibrational spectra are produced by performing a FFT on the input time series da
 To observe the ensemble average (and to see an actual clear spectrum), the individual molecule components are summed together with the `fft_sum.py` script. These read in the HDF5 files from the last step, sum together all of the columns in the input file, and return a text file with the resultant vibrational spectrum.
 
 **KNOWN PROBLEMS AND FUTURE CHANGES:**
-- The `BondAnalysis.py` script is quite slow. This requires a prohibitively long calculation. This will eventually be fixed with MPI parallelization
+- The `BondAnalysis.py` script is quite slow. This requires a prohibitively long calculation. This will eventually be fixed with MPI parallelization.
+- The vibrational spectra analysis will be changed so that it either uses parquet files are HDF5 files, with no mixing of file types.
 
 ## Persistent Homology Analysis Scripts
 1. ring_stats.py

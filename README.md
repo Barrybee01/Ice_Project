@@ -5,8 +5,11 @@ Contains the important python scripts used to post-process LAMMPS trajectories u
 1. LAMMPS_to_XYZ_converter.py
 2. lammpstrj_to_xyz_V3.py
 3. lmp_to_xyz.py
+4. cif_to_lmp.py
 
 The first two scripts require a `dump.lammpstrj` file as input. The last script only requires a single frame of the trajectory file, in the form of `structure_file.lmp`. The first script reads in the LAMMPS trajectory and returns the entire trajectory in an XYZ format. The second script, for the most part, does the exact same thing as the first script, however it produces a modified XYZ trajectory where the cell parameters are stored in the comment line, and the atom symbols are instead numbers representing atom type. The last script does the same job as the first script, but only takes in a single frame to return a single XYZ file.
+
+The script `cif_to_lmp.py` has been added for one's own convenience. I have not found any good software that will do it. Because the LAMMPS `.lmp` structure periodically changes with updates, it should be noted that this script works with the stable Aug 2023 release of LAMMPS, but will likely be adequate for other formats without any change to the script.
 
 ## Bond Analysis Scripts
 1. bond_map.py

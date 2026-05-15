@@ -33,10 +33,6 @@ def convert_cif_to_lmp(cif_file, output_lmp):
             if not line.strip():
                 continue
             parts = line.split()
-
-            if len(parts) < 5:
-                continue
-
             label = parts[0]
             atom_symbol = parts[1]
 

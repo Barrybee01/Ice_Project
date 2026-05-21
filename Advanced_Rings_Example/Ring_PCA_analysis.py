@@ -193,7 +193,7 @@ def prepare_PD_data(dataset_1, dataset_2, training_set1, training_set2, output_d
     all_labels = np.array(all_labels)
     return all_pds, all_labels, all_names
 
-def save_parameter_distributions(birth_lifetime_df, dataset_label, output_dir, num_points=1000):
+def save_parameter_distributions(birth_lifetime_df, dataset_label, output_dir, bins=200, density=False): #basic binned histograms
     births = birth_lifetime_df["Birth"].values
     lifetimes = birth_lifetime_df["Lifetime"].values
     deaths = births + lifetimes
@@ -206,16 +206,16 @@ def save_parameter_distributions(birth_lifetime_df, dataset_label, output_dir, n
 
     for parameter_name, values in distributions.items():
         values = np.asarray(values)
-        kde = scipy.stats.gaussian_kde(values, bw_method=None)
-        xmin = values.min()
-        xmax = values.max()
-        x = np.linspace(xmin,xmax,num_points)
-        y = kde(x)
 
-        output_file = os.path.join(output_dir,f"{dataset_label}_{parameter_name}_distribution.txt")
-        data = np.column_stack((x, y))
-        np.savetxt(output_file,data,header="x density")
-        print(f"Saved distribution: {output_file}")
+        hist, bin_edges = np.histogram(values,bins=bins,density=density)
+        bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+        output_file = os.path.join(output_dir,f"{dataset_label}_{parameter_name}_histogram.txt")
+        data = np.column_stack((bin_centers, hist))
+
+        np.savetxt(output_file,data,header="bin_center density")
+
+        print(f"Saved histogram: {output_file}")
 
 ### EXECUTE MAIN FUNCTIONS ###
 

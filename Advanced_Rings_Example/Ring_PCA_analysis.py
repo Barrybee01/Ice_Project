@@ -217,30 +217,29 @@ def save_parameter_distributions(birth_lifetime_df, dataset_label, output_dir, n
         np.savetxt(output_file,data,header="x density")
         print(f"Saved distribution: {output_file}")
 
-###EXECUTE MAIN FUNCTIONS###
+### EXECUTE MAIN FUNCTIONS ###
 
-pd1_set1, output_name1 = make_PD(last_file_set1,"0kbar", output_dir)
-pd1_set2, output_name2 = make_PD(last_file_set2,"6kbar", output_dir)
+dataset1 = {}
+dataset2 = {}
 
-bl_df1 = compute_birth_lifetime(pd1_set1)
-bl_df2 = compute_birth_lifetime(pd1_set2)
+dataset1["pd"], dataset1["name"] = make_PD(last_file_set1, "0kbar", output_dir)
+dataset2["pd"], dataset2["name"] = make_PD(last_file_set2,"6kbar",output_dir)
 
-save_parameter_distributions(bl_df1,"0kbar",output_dir)
-save_parameter_distributions(bl_df2,"6kbar",output_dir)
+dataset1["birth_lifetime"] = compute_birth_lifetime(dataset1["pd"])
+dataset2["birth_lifetime"] = compute_birth_lifetime(dataset2["pd"])
 
-###EXECUTE PCA RELATED FUNCTIONS
+save_parameter_distributions(dataset1["birth_lifetime"],"0kbar",output_dir)
+save_parameter_distributions(dataset2["birth_lifetime"],"6kbar",output_dir)
 
+### MAKE PLOTTY ###
 
-###MAKE PLOTTY###
+make_PD_plot(dataset1["pd"],dataset1["name"],output_dir)
+make_PD_plot(dataset2["pd"],dataset2["name"],output_dir)
+make_lifetime_birth_plot(dataset1["birth_lifetime"],dataset1["name"],output_dir,log_x=False,log_y=False,point_size=4)
+make_lifetime_birth_plot(dataset2["birth_lifetime"],dataset2["name"],output_dir,log_x=False,log_y=False,point_size=4)
+make_persistence_surface_and_image(dataset1["birth_lifetime"],dataset1["name"],output_dir,weight_function="w3",
+    sigma=0.008,resolution=128,cmap="magma",levels=100)
+make_persistence_surface_and_image(dataset2["birth_lifetime"],dataset2["name"],output_dir,weight_function="w3",
+    sigma=0.008,resolution=128,cmap="magma",levels=100)
 
-make_PD_plot(pd1_set1, output_name1, output_dir)
-make_PD_plot(pd1_set2, output_name2, output_dir)
-
-make_lifetime_birth_plot(bl_df1,output_name1,output_dir,log_x=False,log_y=False, point_size=4)
-make_lifetime_birth_plot(bl_df2,output_name2,output_dir,log_x=False,log_y=False, point_size=4)
-
-make_persistence_surface_and_image(bl_df1,output_name1,output_dir,weight_function="w3",sigma=0.008,resolution=128,cmap="magma",
-levels=100)
-
-make_persistence_surface_and_image(bl_df2,output_name2,output_dir,weight_function="w3",sigma=0.008,resolution=128,cmap="magma",
-levels=100)
+### PCA RELATED STUFF ###

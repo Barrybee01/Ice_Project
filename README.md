@@ -31,6 +31,7 @@ To observe the ensemble average (and to see an actual clear spectrum), the indiv
 **KNOWN PROBLEMS AND FUTURE CHANGES:**
 - The `BondAnalysis.py` script is quite slow. This requires a prohibitively long calculation. This will eventually be fixed with MPI parallelization.
 - The vibrational spectra analysis will be changed so that it either uses parquet files are HDF5 files, with no mixing of file types.
+- It should be noted that there are inherent problems with this type of simulation. In order to be able to resolve vibrational spectra, you will need a small timestep, and will likely need to sample every few timesteps instead of dumping every 100 or more timesteps. Storage will likely be a problem, and that is an inherent issue with this analysis. Usage of `lammpstrj_to_xyz_V3.py` to scrape out everything except for particle positions will be incredibly useful to optimize storage.
 
 ## Persistent Homology Analysis Scripts
 1. ring_stats.py

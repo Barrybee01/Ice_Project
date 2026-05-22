@@ -41,7 +41,7 @@ def make_PD(xyz_path, dataset_label, output_dir):
         weight=weights,
         save_boundary_map=True,
         save_phtrees=True,
-        save_to=pdgm_path
+        save_to=None
     ).dth_diagram(1)
 
     print(f"Saved PDGM: {pdgm_path}")

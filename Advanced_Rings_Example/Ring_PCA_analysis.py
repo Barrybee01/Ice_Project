@@ -41,7 +41,7 @@ def make_PD(xyz_path, dataset_label, output_dir):
         weight=weights,
         save_boundary_map=True,
         save_phtrees=True,
-        save_to=None
+        save_to=None #Not saving pdgm for now, keeping path defined just in case they need to be saved
     ).dth_diagram(1)
 
     print(f"Saved PDGM: {pdgm_path}")
@@ -139,8 +139,7 @@ def make_persistence_surface_and_image(birth_lifetime_df,output_name,output_dir,
     #vmax = np.percentile(surface, 100)
 
     fig1, ax1 = plt.subplots(figsize=(8, 7))
-    contour = ax1.contourf(X, Y, np.log10(1+surface),levels=levels,cmap=cmap,vmin=vmin,vmax=vmax,
-                           norm=None)
+    contour = ax1.contourf(X, Y, np.log10(1+surface),levels=levels,cmap=cmap,vmin=vmin,vmax=vmax)
     fig1.colorbar(contour)
     ax1.set_xlabel("Birth")
     ax1.set_ylabel("Lifetime")

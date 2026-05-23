@@ -215,6 +215,24 @@ def save_parameter_distributions(birth_lifetime_df, dataset_label, output_dir, b
 
         print(f"Saved histogram: {output_file}")
 
+def perform_pca_regression(pd_vectors, target_values, n_components=10, test_size=0.2, random_state=42):
+    X_train, X_test, y_train, y_test = train_test_split(pd_vectors, target_values, test_size=test_size, random_state=random_state)
+
+    pca = PCA(n_components=n_components) #actual pca step
+    X_train_pca = pca.fit_transform(X_train)
+    X_test_pca = pca.transform(X_test)
+
+    regressor = lm.LinearRegression() #see if other regression library is better
+    regressor.fit(X_train_pca, y_train)
+
+    y_pred_train = regressor.predict(X_train_pca)
+    y_pred_test = regressor.predict(X_test_pca) #prediction
+
+    train_score = regressor.score(X_train_pca, y_train)
+    test_score = regressor.score(X_test_pca, y_test)
+    return {'pca': pca, 'regressor': regressor, 'X_train_pca': X_train_pca, 'X_test_pca': X_test_pca, 'y_train': y_train,
+        'y_test': y_test, 'y_pred_train': y_pred_train, 'y_pred_test': y_pred_test, 'train_score': train_score, 'test_score': test_score}
+
 ### EXECUTE MAIN FUNCTIONS ###
 
 dataset1 = {}

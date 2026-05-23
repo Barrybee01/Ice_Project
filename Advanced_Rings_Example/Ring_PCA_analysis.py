@@ -1,4 +1,5 @@
 import os
+import re
 import ase
 import ase.io
 import numpy as np
@@ -59,6 +60,10 @@ def save_figure(fig, output_dir, filename):
     fig.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
     print(f"Saved image: {output_path}")
+
+def extract_step_number(filename):
+    match = re.search(r'step_(\d+)', filename)
+    return int(match.group(1))
 
 def make_PD_plot(pd1, output_name, output_dir):
     pd1.histogram((0, 8), 250).plot(colorbar={"type": "log", "colormap": "plasma"}, font_size=18)
@@ -170,27 +175,21 @@ def vectorize_persistence_diagrams(pds, weight_function="w2", birth_range=(0, 8)
     pdvects = pdvects / pdvects.max()
     return pdvects
 
-def prepare_PD_data(dataset_1, dataset_2, training_set1, training_set2, output_dir): #fixing names for PDs to put into one big list for PCA analysis
+def prepare_PD_data_with_steps(dataset_path, file_list, dataset_label, output_dir): #fixing names for PDs to put into one big list for PCA analysis
     all_pds = []
-    all_labels = []
+    all_step_numbers = []
     all_names = []
 
-    for filename in training_set1:
-        xyz_path = os.path.join(dataset_1, filename)
-        pd1, output_name = make_PD(xyz_path,"0kbar",output_dir)
+    for filename in file_list:
+        xyz_path = os.path.join(dataset_path, filename)
+        step_number = extract_step_number(filename)
+        pd1, output_name = make_PD(xyz_path, dataset_label,output_dir)
         all_pds.append(pd1)
-        all_labels.append(0)
+        all_step_numbers.append(step_number)
         all_names.append(output_name)
 
-    for filename in training_set2:
-        xyz_path = os.path.join(dataset_2,filename)
-        pd1, output_name = make_PD(xyz_path,"6kbar",output_dir)
-        all_pds.append(pd1)
-        all_labels.append(1)
-        all_names.append(output_name)
-
-    all_labels = np.array(all_labels)
-    return all_pds, all_labels, all_names
+    all_step_numbers = np.array(all_step_numbers)
+    return all_pds, all_step_numbers, all_names
 
 def save_parameter_distributions(birth_lifetime_df, dataset_label, output_dir, bins=200, density=False): #basic binned histograms
     births = birth_lifetime_df["Birth"].values
@@ -242,3 +241,7 @@ make_persistence_surface_and_image(dataset2["birth_lifetime"],dataset2["name"],o
     sigma=0.008,resolution=128,cmap="magma",levels=100)
 
 ### PCA RELATED STUFF ###
+
+print("\nPreparing all PD data for PCA")
+pds_1, steps_1, names_1 = prepare_PD_data_with_steps(dataset_1, training_set1, "0kbar", output_dir)
+pds_2, steps_2, names_2 = prepare_PD_data_with_steps(dataset_2, training_set2, "6kbar", output_dir)

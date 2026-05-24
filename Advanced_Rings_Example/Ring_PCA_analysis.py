@@ -15,13 +15,13 @@ import scipy
 
 ###READ INPUT FOLDERS AND DEFINE OUTPUT FOLDER###
 
-dataset_1 = r"E:\PhD project\Amorphous ice calculations\1h to HDA to LDA full and final ring stats\Large scale PCA and regression model analysis\Training_data\0kbar_init"
-dataset_2 = r"E:\PhD project\Amorphous ice calculations\1h to HDA to LDA full and final ring stats\Large scale PCA and regression model analysis\Training_data\6kbar_compression"
+dataset_1 = r"E:\Path\To\First Training Set"
+dataset_2 = r"E:\Path\To\Second Training Set"
 
 training_set1 = sorted([f for f in os.listdir(dataset_1) if f.endswith(".xyz")])
 training_set2 = sorted([f for f in os.listdir(dataset_2) if f.endswith(".xyz")])
 
-output_dir = r"E:\PhD project\Amorphous ice calculations\1h to HDA to LDA full and final ring stats\Large scale PCA and regression model analysis\Compress_0-6kbar"
+output_dir = r"E:\Path\To\Output Directory"
 
 last_file_set1 = os.path.join(dataset_1, training_set1[-1])
 last_file_set2 = os.path.join(dataset_2, training_set2[-1])
@@ -116,8 +116,7 @@ def make_persistence_surface_and_image(birth_lifetime_df,output_name,output_dir,
     weight_options = {
         "w1": ("linear", 0.5),
         "w2": ("atan", 0.01, 3),
-        "w3": ("atan", 0.5, 1)
-    }
+        "w3": ("atan", 0.5, 1)}
 
     selected_weight = weight_options[weight_function]
 
@@ -140,8 +139,6 @@ def make_persistence_surface_and_image(birth_lifetime_df,output_name,output_dir,
         surface += gaussian
 
     sns.set_style("white")
-    #vmin = np.percentile(surface, 15)
-    #vmax = np.percentile(surface, 100)
 
     fig1, ax1 = plt.subplots(figsize=(8, 7))
     contour = ax1.contourf(X, Y, np.log10(1+surface),levels=levels,cmap=cmap,vmin=vmin,vmax=vmax)
@@ -199,8 +196,7 @@ def save_parameter_distributions(birth_lifetime_df, dataset_label, output_dir, b
     distributions = {
         "birth": births,
         "death": deaths,
-        "lifetime": lifetimes
-    }
+        "lifetime": lifetimes}
 
     for parameter_name, values in distributions.items():
         values = np.asarray(values)

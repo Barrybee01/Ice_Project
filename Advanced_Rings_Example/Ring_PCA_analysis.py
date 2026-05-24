@@ -263,3 +263,26 @@ make_persistence_surface_and_image(dataset2["birth_lifetime"],dataset2["name"],o
 print("\nPreparing all PD data for PCA")
 pds_1, steps_1, names_1 = prepare_PD_data_with_steps(dataset_1, training_set1, "0kbar", output_dir)
 pds_2, steps_2, names_2 = prepare_PD_data_with_steps(dataset_2, training_set2, "6kbar", output_dir)
+
+all_pds = pds_1 + pds_2
+all_step_numbers = np.concatenate([steps_1, steps_2])
+all_names = names_1 + names_2
+
+print(f"Total samples: {len(all_pds)}")
+print(f"Step numbers range: {all_step_numbers.min()} to {all_step_numbers.max()}")
+print(f"Unique step numbers: {np.unique(all_step_numbers)}")
+print(f"Dataset 1 steps: {steps_1}")
+print(f"Dataset 2 steps: {steps_2}")
+
+print("\nVectorizing persistence diagrams")
+pd_vectors = vectorize_persistence_diagrams(all_pds, weight_function="w3", birth_range=(0, 8), resolution=128, sigma=0.006)
+print(f"Vectorized data shape: {pd_vectors.shape}")
+
+print("\nPerforming PCA regression")
+pca_results = perform_pca_regression(pd_vectors, all_step_numbers, n_components=20, test_size=0.2, random_state=42)
+
+print("PCA REGRESSION RESULTS")
+print("=" * 30)
+print(f"Training R² score: {pca_results['train_score']:.4f}")
+print(f"Test R² score: {pca_results['test_score']:.4f}")
+print(f"Total explained variance by {pca_results['pca'].n_components_} components: {np.sum(pca_results['pca'].explained_variance_ratio_):.4f}")

@@ -1,12 +1,10 @@
 import numpy as np
 
-
 def unscale_coordinates(xs, ys, zs, cell_lengths):
     x = xs * cell_lengths[0]
     y = ys * cell_lengths[1]
     z = zs * cell_lengths[2]
     return x, y, z
-
 
 def convert_cif_to_lmp(cif_file, output_lmp):
     with open(cif_file, 'r') as infile:
@@ -65,13 +63,7 @@ def convert_cif_to_lmp(cif_file, output_lmp):
 
             outfile.write(
                 f"{i:8d} {atom_type:4d} "
-                f"{x:15.9f} {y:15.9f} {z:15.9f}\n"
-            )
-
+                f"{x:15.9f} {y:15.9f} {z:15.9f}\n")
 
 if __name__ == "__main__":
-
-    convert_cif_to_lmp(
-        "Ice_1h_Supercell.cif",
-        "test_structure.lmp"
-    )
+    convert_cif_to_lmp("Ice_1h_Supercell.cif", "test_structure.lmp")

@@ -229,6 +229,191 @@ def perform_pca_regression(pd_vectors, target_values, n_components=10, test_size
     return {'pca': pca, 'regressor': regressor, 'X_train_pca': X_train_pca, 'X_test_pca': X_test_pca, 'y_train': y_train,
         'y_test': y_test, 'y_pred_train': y_pred_train, 'y_pred_test': y_pred_test, 'train_score': train_score, 'test_score': test_score}
 
+def plot_pca_results(pca_results, output_dir, title_prefix="PCA_Regression"): #I thought this was fucking hilarious
+    sns.set_style("whitegrid")
+
+    fig1, ax1 = plt.subplots(figsize=(12, 7)) #explained variance ratio plot
+    explained_variance_ratio = pca_results['pca'].explained_variance_ratio_
+    cumulative_variance = np.cumsum(explained_variance_ratio)
+    components = range(1, len(explained_variance_ratio) + 1)
+
+    df_var = pd.DataFrame({'Component': components, 'Individual Variance': explained_variance_ratio, 'Cumulative Variance': cumulative_variance})
+    sns.barplot(data=df_var, x='Component', y='Individual Variance', alpha=0.7, color='steelblue', ax=ax1)
+    sns.lineplot(data=df_var, x='Component', y='Cumulative Variance', marker='o', color='red', linewidth=2, markersize=8, ax=ax1)
+    ax1.axhline(y=0.95, color='green', linestyle='--', alpha=0.7, linewidth=2, label='95% variance threshold')
+    ax1.set_xlabel('Principal Component', fontsize=14)
+    ax1.set_ylabel('Explained Variance Ratio', fontsize=14)
+    ax1.set_title(f'{title_prefix} - Explained Variance', fontsize=16)
+    ax1.legend(loc='upper left', fontsize=12)
+
+    n_components_95 = np.where(cumulative_variance >= 0.95)[0]
+
+    if len(n_components_95) > 0:
+        ax1.text(0.02, 0.98, f'{n_components_95[0] + 1} components explain 95% variance',
+                 transform=ax1.transAxes, fontsize=10, verticalalignment='top',
+                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+    plt.tight_layout()
+    save_figure(fig1, output_dir, f"{title_prefix}_explained_variance.png")
+
+    fig2, ax2 = plt.subplots(figsize=(8, 8)) #predictions vs actual (test set)
+
+    df_pred = pd.DataFrame({
+        'Actual Step Number': pca_results['y_test'],
+        'Predicted Step Number': pca_results['y_pred_test']
+    })
+
+    sns.regplot(data=df_pred, x='Actual Step Number', y='Predicted Step Number',
+                scatter=False,
+                line_kws={'color': 'red', 'linewidth': 2, 'linestyle': '--'},
+                ax=ax2)
+
+    ax2.scatter(df_pred['Actual Step Number'], df_pred['Predicted Step Number'],alpha=0.6, s=60, edgecolors='black', linewidths=0.5)
+
+    min_val = min(df_pred['Actual Step Number'].min(), df_pred['Predicted Step Number'].min())
+    max_val = max(df_pred['Actual Step Number'].max(), df_pred['Predicted Step Number'].max())
+
+    ax2.plot([min_val, max_val], [min_val, max_val], 'g--', linewidth=2, label='Perfect prediction', alpha=0.7)
+    ax2.set_xlabel('Actual Step Number', fontsize=14)
+    ax2.set_ylabel('Predicted Step Number', fontsize=14)
+    ax2.set_title(f'Test Set Predictions\nR² = {pca_results["test_score"]:.4f}', fontsize=14)
+    ax2.legend(fontsize=12)
+    ax2.set_aspect('equal', adjustable='box')
+    plt.tight_layout()
+    save_figure(fig2, output_dir, f"{title_prefix}_predictions_vs_actual.png")
+
+    fig3, ax3 = plt.subplots(figsize=(10, 6)) #residual plot
+    residuals = pca_results['y_test'] - pca_results['y_pred_test']
+
+    df_residual = pd.DataFrame({
+        'Predicted Step Number': pca_results['y_pred_test'],
+        'Residuals': residuals})
+
+    sns.scatterplot(data=df_residual, x='Predicted Step Number', y='Residuals', alpha=0.6, s=50, color='coral', edgecolor='black', ax=ax3)
+    ax3.axhline(y=0, color='red', linestyle='--', linewidth=2)
+    mean_residual = np.mean(residuals)
+    std_residual = np.std(residuals)
+
+    ax3.axhline(y=mean_residual, color='blue', linestyle=':', linewidth=1.5, label=f'Mean residual = {mean_residual:.3f}')
+    ax3.axhline(y=mean_residual + 2 * std_residual, color='gray', linestyle=':', alpha=0.7, linewidth=1)
+    ax3.axhline(y=mean_residual - 2 * std_residual, color='gray',linestyle=':', alpha=0.7, linewidth=1,label=f'±2σ = {2 * std_residual:.3f}')
+    ax3.set_xlabel('Predicted Step Number', fontsize=14)
+    ax3.set_ylabel('Residuals (Actual - Predicted)', fontsize=14)
+    ax3.set_title('Residual Plot', fontsize=14)
+    ax3.legend(fontsize=10)
+    plt.tight_layout()
+    save_figure(fig3, output_dir, f"{title_prefix}_residuals.png")
+
+    fig4, ax4 = plt.subplots(figsize=(10, 6)) #residual distribution
+    sns.histplot(residuals, bins=20, kde=True, stat='density',color='coral', edgecolor='black', alpha=0.7, ax=ax4)
+
+    mu, std = np.mean(residuals), np.std(residuals)
+    x = np.linspace(residuals.min(), residuals.max(), 100)
+    y = (1 / (std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - mu) / std) ** 2)
+
+    ax4.plot(x, y, 'b-', linewidth=2, label=f'Normal fit (μ={mu:.3f}, σ={std:.3f})')
+    ax4.axvline(x=0, color='red', linestyle='--', linewidth=2, label='Zero residual')
+    ax4.set_xlabel('Residuals', fontsize=14)
+    ax4.set_ylabel('Density', fontsize=14)
+    ax4.set_title('Residual Distribution', fontsize=14)
+    ax4.legend(fontsize=12)
+    plt.tight_layout()
+    save_figure(fig4, output_dir, f"{title_prefix}_residual_distribution.png")
+
+    fig5, ax5 = plt.subplots(figsize=(8, 6)) #training vs test performance
+
+    df_performance = pd.DataFrame({
+        'Dataset': ['Train', 'Test'],
+        'R² Score': [pca_results['train_score'], pca_results['test_score']]})
+
+    sns.barplot(data=df_performance, x='Dataset', y='R² Score',hue='Dataset', palette=['green', 'steelblue'],
+                legend=False, alpha=0.7, edgecolor='black', ax=ax5)
+
+    for i, (bar, score) in enumerate(zip(ax5.patches, df_performance['R² Score'])):
+        ax5.text(bar.get_x() + bar.get_width() / 2,
+                 bar.get_height() + 0.01,
+                 f'{score:.4f}',
+                 ha='center', va='bottom', fontsize=12)
+
+    ax5.set_ylim(0, 1.05)
+    ax5.set_ylabel('R² Score', fontsize=14)
+    ax5.set_title('Model Performance Comparison', fontsize=14)
+    plt.tight_layout()
+    save_figure(fig5, output_dir, f"{title_prefix}_performance_comparison.png")
+
+    fig6, ax6 = plt.subplots(figsize=(14, 10)) #PCA components heatmap
+
+    n_components_show = min(10, pca_results['pca'].n_components_)
+
+    components_df = pd.DataFrame(
+        pca_results['pca'].components_[:n_components_show, :],
+        index=[f'PC{i + 1}' for i in range(n_components_show)],
+        columns=[f'Feature_{i}' for i in range(pca_results['pca'].components_.shape[1])])
+
+    sns.heatmap(components_df, cmap='RdBu_r', center=0,cbar_kws={'label': 'Component Weight', 'shrink': 0.8},ax=ax6)
+    ax6.set_xlabel('Original Feature Index', fontsize=14)
+    ax6.set_ylabel('Principal Component', fontsize=14)
+    ax6.set_title(f'First {n_components_show} PCA Components', fontsize=14)
+    plt.tight_layout()
+    save_figure(fig6, output_dir, f"{title_prefix}_components_heatmap.png")
+    fig7, ax7 = plt.subplots(figsize=(10, 8)) #2D PCA projection
+
+    all_pca = pca_results['X_train_pca']
+
+    df_projection = pd.DataFrame({
+        'PC1': all_pca[:, 0],
+        'PC2': all_pca[:, 1],
+        'Step Number': pca_results['y_train']})
+
+    sns.scatterplot(data=df_projection, x='PC1', y='PC2',hue='Step Number', palette='viridis',
+                    alpha=0.7, s=60, edgecolor='black', ax=ax7)
+
+    ax7.set_xlabel(f'First Principal Component ({explained_variance_ratio[0] * 100:.1f}% variance)', fontsize=14)
+    ax7.set_ylabel(f'Second Principal Component ({explained_variance_ratio[1] * 100:.1f}% variance)', fontsize=14)
+    ax7.set_title('2D PCA Projection (Training Data)', fontsize=14)
+    plt.legend(title='Step Number', bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    save_figure(fig7, output_dir, f"{title_prefix}_2d_projection.png")
+
+    if pca_results['pca'].n_components_ >= 3: #pairplot of first 3 principal components
+        df_pcs = pd.DataFrame({
+            'PC1': all_pca[:, 0],
+            'PC2': all_pca[:, 1],
+            'PC3': all_pca[:, 2],
+            'Step Number': pca_results['y_train']})
+
+        pairplot = sns.pairplot(df_pcs, hue='Step Number', palette='viridis',
+                                diag_kind='kde',
+                                plot_kws={'alpha': 0.6, 's': 30},
+                                diag_kws={'alpha': 0.7})
+
+        pairplot.fig.suptitle('Pairwise Relationships of First 3 Principal Components', fontsize=16, y=1.02)
+        plt.tight_layout()
+        save_figure(pairplot.fig, output_dir, f"{title_prefix}_3d_pairplot.png")
+
+    fig9, ax9 = plt.subplots(figsize=(10, 8)) #loadings plot for first 2 principal components
+    loadings = pca_results['pca'].components_[:2, :]
+    df_loadings = pd.DataFrame({
+        'PC1': loadings[0, :],
+        'PC2': loadings[1, :]})
+
+    sns.scatterplot(data=df_loadings, x='PC1', y='PC2',alpha=0.6, s=40, ax=ax9)
+
+    for i in range(min(50, loadings.shape[1])):
+        ax9.arrow(0, 0, loadings[0, i], loadings[1, i],
+                  head_width=0.01, head_length=0.01,
+                  alpha=0.3, color='gray')
+
+    ax9.axhline(y=0, color='k', linestyle='-', alpha=0.3)
+    ax9.axvline(x=0, color='k', linestyle='-', alpha=0.3)
+    ax9.set_xlabel(f'PC1 ({explained_variance_ratio[0] * 100:.1f}% variance)', fontsize=14)
+    ax9.set_ylabel(f'PC2 ({explained_variance_ratio[1] * 100:.1f}% variance)', fontsize=14)
+    ax9.set_title('PCA Loadings Plot (Feature Contributions)', fontsize=14)
+    ax9.grid(True, alpha=0.3)
+    plt.tight_layout()
+    save_figure(fig9, output_dir, f"{title_prefix}_loadings_plot.png")
+    return
+
 ### EXECUTE MAIN FUNCTIONS ###
 
 dataset1 = {}
@@ -282,3 +467,5 @@ print("=" * 30)
 print(f"Training R² score: {pca_results['train_score']:.4f}")
 print(f"Test R² score: {pca_results['test_score']:.4f}")
 print(f"Total explained variance by {pca_results['pca'].n_components_} components: {np.sum(pca_results['pca'].explained_variance_ratio_):.4f}")
+
+plot_pca_results(pca_results, output_dir, "Step_Number_Regression")

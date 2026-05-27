@@ -159,7 +159,7 @@ def make_persistence_surface_and_image(birth_lifetime_df,output_name,output_dir,
     save_figure(fig2, output_dir, f"{output_name}_persistence_image_weight-{selected_weight}_bins-{resolution}.png")
     return surface
 
-def vectorize_persistence_diagrams(pds, weight_function="w2", birth_range=(0, 8), resolution=128, sigma=0.006): #Need for large scale pca
+def vectorize_persistence_diagrams(pds, weight_function="w2", birth_range=(0, 8), resolution=128, sigma=0.06): #Need for large scale pca
     weights = {
         "w1": ("linear", 0.5),
         "w2": ("atan", 0.01, 3),
@@ -456,7 +456,7 @@ print(f"Dataset 1 steps: {steps_1}")
 print(f"Dataset 2 steps: {steps_2}")
 
 print("\nVectorizing persistence diagrams")
-pd_vectors = vectorize_persistence_diagrams(all_pds, weight_function="w3", birth_range=(0, 8), resolution=128, sigma=0.006)
+pd_vectors = vectorize_persistence_diagrams(all_pds, weight_function="w3", birth_range=(0, 8), resolution=128, sigma=0.06)
 print(f"Vectorized data shape: {pd_vectors.shape}")
 
 print("\nPerforming PCA regression")

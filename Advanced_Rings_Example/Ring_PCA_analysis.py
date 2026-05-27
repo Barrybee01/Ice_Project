@@ -170,7 +170,7 @@ def vectorize_persistence_diagrams(pds, weight_function="w2", birth_range=(0, 8)
 
     pdvects = np.vstack([vectorize_spec.vectorize(pd) for pd in pds])
     pdvects = pdvects / pdvects.max()
-    return pdvects
+    return pdvects, vectorize_spec
 
 def prepare_PD_data_with_steps(dataset_path, file_list, dataset_label, output_dir): #fixing names for PDs to put into one big list for PCA analysis
     all_pds = []
@@ -456,7 +456,7 @@ print(f"Dataset 1 steps: {steps_1}")
 print(f"Dataset 2 steps: {steps_2}")
 
 print("\nVectorizing persistence diagrams")
-pd_vectors = vectorize_persistence_diagrams(all_pds, weight_function="w3", birth_range=(0, 8), resolution=128, sigma=0.06)
+pd_vectors, vectorize_spec = vectorize_persistence_diagrams(all_pds, weight_function="w3", birth_range=(0, 8), resolution=128, sigma=0.06)
 print(f"Vectorized data shape: {pd_vectors.shape}")
 
 print("\nPerforming PCA regression")

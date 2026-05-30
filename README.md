@@ -62,8 +62,11 @@ A more advanced example of using the ring statistics scripts is currently in pro
 
 ## Miscellaneous Scripts
 1. supercell_subdividor_GPU_boosted.py
+2. RDF_contour.py
 
-This is a GPU-oriented script that will perform local density calculations on larger supercells. Should only need an XYZ file, or something related, for this to run. An interesting use case would be to observe local fluctuations of other physical properties.
+The script `supercell_subdividor_GPU_boosted.py` is a GPU-oriented script that will perform local density calculations on larger supercells. Should only need an XYZ file, or something related, for this to run. An interesting use case would be to observe local fluctuations of other physical properties.
+
+The script `RDF_contour.py` takes a `.rdf` file that is generated from a LAMMPS simulation and creates a series of plots from it including contour and waterfall plots.
 
 ## Dependencies
 All of these calculations can be performed with a single Python environment. Listed below are the requirements for a Python/3.10 environment.

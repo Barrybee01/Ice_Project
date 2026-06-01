@@ -414,6 +414,124 @@ def plot_pca_results(pca_results, output_dir, title_prefix="PCA_Regression"): #I
     save_figure(fig9, output_dir, f"{title_prefix}_loadings_plot.png")
     return
 
+def save_pca_results_to_csv(pca_results, output_dir, title_prefix="PCA_Regression"):
+    explained_variance_df = pd.DataFrame({
+        'component': range(1, len(pca_results['pca'].explained_variance_ratio_) + 1),
+        'explained_variance_ratio': pca_results['pca'].explained_variance_ratio_,
+        'cumulative_variance_ratio': np.cumsum(pca_results['pca'].explained_variance_ratio_)})
+
+    explained_variance_df.to_csv(os.path.join(output_dir, f"{title_prefix}_explained_variance.csv"), index=False)
+    print(f"Saved: {title_prefix}_explained_variance.csv")
+
+    train_predictions_df = pd.DataFrame({
+        'actual_step': pca_results['y_train'],
+        'predicted_step': pca_results['y_pred_train'],
+        'residual': pca_results['y_train'] - pca_results['y_pred_train']})
+
+    train_predictions_df.to_csv(os.path.join(output_dir, f"{title_prefix}_train_predictions.csv"),index=False)
+    print(f"Saved: {title_prefix}_train_predictions.csv")
+
+    test_predictions_df = pd.DataFrame({
+        'actual_step': pca_results['y_test'],
+        'predicted_step': pca_results['y_pred_test'],
+        'residual': pca_results['y_test'] - pca_results['y_pred_test']})
+
+    test_predictions_df.to_csv(os.path.join(output_dir, f"{title_prefix}_test_predictions.csv"), index=False)
+    print(f"Saved: {title_prefix}_test_predictions.csv")
+
+    components_df = pd.DataFrame(pca_results['pca'].components_, columns=[f'feature_{i}' for i in range(pca_results['pca'].components_.shape[1])])
+    components_df.to_csv(os.path.join(output_dir, f"{title_prefix}_components.csv"),index=False)
+    print(f"Saved: {title_prefix}_components.csv")
+
+    train_scores_df = pd.DataFrame(pca_results['X_train_pca'], columns=[f'PC{i + 1}' for i in range(pca_results['X_train_pca'].shape[1])])
+    train_scores_df['step_number'] = pca_results['y_train']
+    train_scores_df.to_csv(os.path.join(output_dir, f"{title_prefix}_train_scores.csv"),index=False)
+    print(f"Saved: {title_prefix}_train_scores.csv")
+
+    test_scores_df = pd.DataFrame(pca_results['X_test_pca'],columns=[f'PC{i + 1}' for i in range(pca_results['X_test_pca'].shape[1])])
+    test_scores_df['step_number'] = pca_results['y_test']
+    test_scores_df.to_csv(os.path.join(output_dir, f"{title_prefix}_test_scores.csv"),index=False)
+    print(f"Saved: {title_prefix}_test_scores.csv")
+
+    coefficients_df = pd.DataFrame({'pc_component': [f'PC{i + 1}' for i in range(len(pca_results['regressor'].coef_))],'coefficient': pca_results['regressor'].coef_})
+    coefficients_df.to_csv(os.path.join(output_dir, f"{title_prefix}_regression_coefficients.csv"),index=False)
+    print(f"Saved: {title_prefix}_regression_coefficients.csv")
+
+    loadings_df = pd.DataFrame({
+        'feature_index': range(pca_results['pca'].components_.shape[1]),
+        'PC1_loading': pca_results['pca'].components_[0, :],
+        'PC2_loading': pca_results['pca'].components_[1, :] if pca_results['pca'].n_components_ > 1 else np.nan,
+        'PC3_loading': pca_results['pca'].components_[2, :] if pca_results['pca'].n_components_ > 2 else np.nan})
+    loadings_df.to_csv(os.path.join(output_dir, f"{title_prefix}_feature_loadings.csv"),index=False)
+    print(f"Saved: {title_prefix}_feature_loadings.csv")
+
+    with open(os.path.join(output_dir, f"{title_prefix}_summary.txt"), 'w') as f:
+        f.write("PCA REGRESSION SUMMARY\n")
+        f.write("=" * 30 + "\n\n")
+        f.write("MODEL PERFORMANCE\n")
+        f.write("-" * 30 + "\n")
+        f.write(f"Training R² Score: {pca_results['train_score']:.6f}\n")
+        f.write(f"Test R² Score: {pca_results['test_score']:.6f}\n\n")
+        f.write("PCA INFORMATION\n")
+        f.write("-" * 30 + "\n")
+        f.write(f"Number of PCA components: {pca_results['pca'].n_components_}\n")
+        f.write(f"Total explained variance: {np.sum(pca_results['pca'].explained_variance_ratio_):.6f}\n\n")
+        f.write("EXPLAINED VARIANCE PER COMPONENT\n")
+        f.write("-" * 30 + "\n")
+        for i, var in enumerate(pca_results['pca'].explained_variance_ratio_):
+            f.write(f"  PC{i + 1}: {var:.6f} ({var * 100:.2f}%)\n")
+        f.write("\nCUMULATIVE EXPLAINED VARIANCE\n")
+        f.write("-" * 30 + "\n")
+        cumsum = 0
+        for i, var in enumerate(pca_results['pca'].explained_variance_ratio_):
+            cumsum += var
+            f.write(f"  PC{i + 1}: {cumsum:.6f} ({cumsum * 100:.2f}%)\n")
+
+        f.write("\nREGRESSION INFORMATION\n")
+        f.write("-" * 30 + "\n")
+        f.write(f"Regression intercept: {pca_results['regressor'].intercept_:.6f}\n")
+        f.write("\nRegression coefficients:\n")
+        for i, coef in enumerate(pca_results['regressor'].coef_):
+            f.write(f"  PC{i + 1}: {coef:.6f}\n")
+
+        f.write("\nDATA INFORMATION\n")
+        f.write("-" * 30 + "\n")
+        f.write(f"Total samples: {len(pca_results['y_train']) + len(pca_results['y_test'])}\n")
+        f.write(f"Training samples: {len(pca_results['y_train'])}\n")
+        f.write(f"Test samples: {len(pca_results['y_test'])}\n")
+        f.write(f"Feature dimension before PCA: {pca_results['X_train'].shape[1]}\n")
+        f.write(f"Feature dimension after PCA: {pca_results['X_train_pca'].shape[1]}\n")
+
+        f.write("\n" + "=" * 30 + "\n")
+
+    print(f"Saved: {title_prefix}_summary.txt")
+    print(f"\nAll CSV files saved to: {output_dir}")
+
+def plot_pca_persistence_components(pca,vectorize_spec,output_dir,title_prefix="PCA",cmap="RdBu_r",midpoint=0):
+    fig_mean = plt.figure(figsize=(7, 6))
+    vectorize_spec.histogram_from_vector(pca.mean_).plot(colorbar={"type": "log", "max":1E1})
+    plt.title("Mean Persistence Image")
+    mean_path = os.path.join(output_dir,f"{title_prefix}_mean_persistence_image.png")
+    plt.savefig(mean_path, dpi=300, bbox_inches="tight")
+    plt.close(fig_mean)
+    print(f"Saved: {mean_path}")
+
+    fig_pc1 = plt.figure(figsize=(7, 6))
+    vectorize_spec.histogram_from_vector(pca.components_[0, :]).plot(colorbar={"type": "linear-midpoint","midpoint": midpoint})
+    plt.title("PC1 Persistence Image")
+    pc1_path = os.path.join(output_dir,f"{title_prefix}_PC1_persistence_image.png")
+    plt.savefig(pc1_path, dpi=300, bbox_inches="tight")
+    plt.close(fig_pc1)
+    print(f"Saved: {pc1_path}")
+
+    fig_pc2 = plt.figure(figsize=(7, 6))
+    vectorize_spec.histogram_from_vector(pca.components_[1, :]).plot(colorbar={"type": "linear-midpoint","midpoint": midpoint})
+    plt.title("PC2 Persistence Image")
+    pc2_path = os.path.join(output_dir,f"{title_prefix}_PC2_persistence_image.png")
+    plt.savefig(pc2_path, dpi=300, bbox_inches="tight")
+    plt.close(fig_pc2)
+    print(f"Saved: {pc2_path}")
+
 ### EXECUTE MAIN FUNCTIONS ###
 
 dataset1 = {}
@@ -469,3 +587,5 @@ print(f"Test R² score: {pca_results['test_score']:.4f}")
 print(f"Total explained variance by {pca_results['pca'].n_components_} components: {np.sum(pca_results['pca'].explained_variance_ratio_):.4f}")
 
 plot_pca_results(pca_results, output_dir, "Step_Number_Regression")
+save_pca_results_to_csv(pca_results, output_dir, "Step_Number_Regression")
+plot_pca_persistence_components(pca=pca_results['pca'],vectorize_spec=vectorize_spec,output_dir=output_dir,title_prefix="Step_Number_Regression")

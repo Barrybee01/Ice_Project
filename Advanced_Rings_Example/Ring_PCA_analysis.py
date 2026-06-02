@@ -532,6 +532,194 @@ def plot_pca_persistence_components(pca,vectorize_spec,output_dir,title_prefix="
     plt.close(fig_pc2)
     print(f"Saved: {pc2_path}")
 
+### LOGISTIC REGRESSION ###
+
+def perform_logistic_regression(pd_vectors, target_labels, test_size=0.2, random_state=42, C=0.01, solver="lbfgs"):
+    X_train, X_test, y_train, y_test = train_test_split(pd_vectors, target_labels, test_size=test_size, random_state=random_state, stratify=target_labels) #split up data
+    model = lm.LogisticRegression(C=C, solver=solver, max_iter=1000, random_state=random_state) #train
+    model.fit(X_train, y_train)
+    y_pred_train = model.predict(X_train)
+    y_pred_test = model.predict(X_test)
+    y_pred_proba_test = model.predict_proba(X_test)
+
+    train_score = model.score(X_train, y_train)
+    test_score = model.score(X_test, y_test)
+    from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
+    return {'model': model,'X_train': X_train,'X_test': X_test,'y_train': y_train,'y_test': y_test,'y_pred_train': y_pred_train,'y_pred_test': y_pred_test,
+        'y_pred_proba_test': y_pred_proba_test,'train_score': train_score,'test_score': test_score,'classification_report': classification_report(y_test, y_pred_test),
+        'confusion_matrix': confusion_matrix(y_test, y_pred_test),'roc_auc': roc_auc_score(y_test, y_pred_proba_test[:, 1]),'roc_curve': roc_curve(y_test, y_pred_proba_test[:, 1])}
+
+
+def plot_logistic_regression_results(lr_results, output_dir, title_prefix="Logistic_Regression"):
+    sns.set_style("whitegrid")
+
+    fig1, ax1 = plt.subplots(figsize=(8, 6))
+    cm = lr_results['confusion_matrix']
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',xticklabels=['0kbar', '6kbar'],yticklabels=['0kbar', '6kbar'],cbar_kws={'label': 'Count'}, ax=ax1)
+    ax1.set_xlabel('Predicted', fontsize=14)
+    ax1.set_ylabel('Actual', fontsize=14)
+    ax1.set_title(f'Confusion Matrix\nAccuracy: {lr_results["test_score"]:.4f}', fontsize=14)
+    plt.tight_layout()
+    save_figure(fig1, output_dir, f"{title_prefix}_confusion_matrix.png")
+
+    fig2, ax2 = plt.subplots(figsize=(8, 6))
+    fpr, tpr, thresholds = lr_results['roc_curve']
+    ax2.plot(fpr, tpr, 'b-', linewidth=2, label=f'ROC Curve (AUC = {lr_results["roc_auc"]:.4f})')
+    ax2.plot([0, 1], [0, 1], 'r--', linewidth=2, label='Random Classifier (AUC = 0.5)')
+    ax2.set_xlabel('False Positive Rate', fontsize=14)
+    ax2.set_ylabel('True Positive Rate', fontsize=14)
+    ax2.set_title('ROC Curve', fontsize=14)
+    ax2.legend(fontsize=12)
+    ax2.grid(True, alpha=0.3)
+    plt.tight_layout()
+    save_figure(fig2, output_dir, f"{title_prefix}_roc_curve.png")
+
+    fig3, ax3 = plt.subplots(figsize=(8, 6))
+    df_performance = pd.DataFrame({'Dataset': ['Train', 'Test'],'Accuracy': [lr_results['train_score'], lr_results['test_score']]})
+    sns.barplot(data=df_performance, x='Dataset', y='Accuracy',palette=['green', 'steelblue'], alpha=0.7, edgecolor='black', ax=ax3)
+    for i, (bar, score) in enumerate(zip(ax3.patches, df_performance['Accuracy'])):
+        ax3.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01,f'{score:.4f}', ha='center', va='bottom', fontsize=12, fontweight='bold')
+    ax3.set_ylim(0, 1.05)
+    ax3.set_ylabel('Accuracy', fontsize=14)
+    ax3.set_title('Logistic Regression Performance', fontsize=14)
+    plt.tight_layout()
+    save_figure(fig3, output_dir, f"{title_prefix}_performance.png")
+
+    fig4, ax4 = plt.subplots(figsize=(10, 6))
+    prob_class0 = lr_results['y_pred_proba_test'][lr_results['y_test'] == 0][:, 1]
+    prob_class1 = lr_results['y_pred_proba_test'][lr_results['y_test'] == 1][:, 1]
+    ax4.hist(prob_class0, bins=20, alpha=0.6, label='True 0kbar', color='blue', edgecolor='black')
+    ax4.hist(prob_class1, bins=20, alpha=0.6, label='True 6kbar', color='orange', edgecolor='black')
+    ax4.axvline(x=0.5, color='red', linestyle='--', linewidth=2, label='Decision Boundary')
+    ax4.set_xlabel('Predicted Probability of 6kbar', fontsize=14)
+    ax4.set_ylabel('Frequency', fontsize=14)
+    ax4.set_title('Prediction Probability Distribution', fontsize=14)
+    ax4.legend(fontsize=12)
+    ax4.grid(True, alpha=0.3)
+    plt.tight_layout()
+    save_figure(fig4, output_dir, f"{title_prefix}_probability_distribution.png")
+
+    fig5, ax5 = plt.subplots(figsize=(10, 6))
+    report = lr_results['classification_report']
+    report_lines = report.split('\n')
+    metrics_data = []
+    for line in report_lines[2:5]:  # Get the class rows
+        if line.strip():
+            parts = line.split()
+            if len(parts) >= 4:
+                class_name = parts[0]
+                precision = float(parts[1])
+                recall = float(parts[2])
+                f1_score = float(parts[3])
+                support = int(parts[4]) if len(parts) > 4 else 0
+                metrics_data.append([class_name, precision, recall, f1_score, support])
+
+    df_report = pd.DataFrame(metrics_data, columns=['Class', 'Precision', 'Recall', 'F1-Score', 'Support'])
+    df_report_melted = df_report.melt(id_vars=['Class', 'Support'],value_vars=['Precision', 'Recall', 'F1-Score'],var_name='Metric', value_name='Score')
+    pivot_report = df_report_melted.pivot_table(index='Class', columns='Metric', values='Score')
+    sns.heatmap(pivot_report, annot=True, fmt='.3f', cmap='YlGnBu',cbar_kws={'label': 'Score'}, ax=ax5)
+    ax5.set_title('Classification Report Metrics', fontsize=14)
+    plt.tight_layout()
+    save_figure(fig5, output_dir, f"{title_prefix}_classification_report.png")
+    return
+
+
+def plot_logistic_regression_coefficients(model, vectorize_spec, output_dir, title_prefix="Logistic_Regression",cmap="RdBu_r", midpoint=0.0):
+    fig_coef = plt.figure(figsize=(10, 8))
+    coef_vector = model.coef_.ravel()
+    img = vectorize_spec.histogram_from_vector(coef_vector)
+    img.plot(colorbar={"type": "linear-midpoint", "midpoint": midpoint})
+    plt.title("Logistic Regression Coefficients (Feature Importance)", fontsize=16)
+    plt.tight_layout()
+    coef_path = os.path.join(output_dir, f"{title_prefix}_coefficients_persistence.png")
+    plt.savefig(coef_path, dpi=300, bbox_inches="tight")
+    plt.close(fig_coef)
+    print(f"Saved: {coef_path}")
+
+    fig_bar, ax_bar = plt.subplots(figsize=(12, 6))
+    n_top = 20
+    top_indices = np.argsort(np.abs(coef_vector))[-n_top:]
+    top_coefs = coef_vector[top_indices]
+    top_indices_sorted = top_indices[np.argsort(top_coefs)]
+    top_coefs_sorted = coef_vector[top_indices_sorted]
+    colors = ['red' if x < 0 else 'green' for x in top_coefs_sorted]
+    ax_bar.barh(range(len(top_coefs_sorted)), top_coefs_sorted, color=colors, alpha=0.7)
+    ax_bar.axvline(x=0, color='black', linestyle='-', linewidth=1)
+    ax_bar.set_xlabel('Coefficient Value', fontsize=14)
+    ax_bar.set_ylabel('Feature Index', fontsize=14)
+    ax_bar.set_title(f'Top {n_top} Most Important Features (Absolute Coefficient)', fontsize=14)
+    ax_bar.grid(True, alpha=0.3)
+    plt.tight_layout()
+    top_features_path = os.path.join(output_dir, f"{title_prefix}_top_features.png")
+    plt.savefig(top_features_path, dpi=300, bbox_inches="tight")
+    plt.close(fig_bar)
+    print(f"Saved: {top_features_path}")
+    return
+
+
+def save_logistic_regression_results(lr_results, output_dir, title_prefix="Logistic_Regression"):
+    predictions_df = pd.DataFrame({
+        'actual_label': lr_results['y_test'],
+        'predicted_label': lr_results['y_pred_test'],
+        'probability_0kbar': lr_results['y_pred_proba_test'][:, 0],
+        'probability_6kbar': lr_results['y_pred_proba_test'][:, 1]})
+    predictions_df.to_csv(os.path.join(output_dir, f"{title_prefix}_test_predictions.csv"), index=False)
+    print(f"Saved: {title_prefix}_test_predictions.csv")
+
+    coefficients_df = pd.DataFrame({'feature_index': range(len(lr_results['model'].coef_.ravel())),'coefficient': lr_results['model'].coef_.ravel()})
+    coefficients_df.to_csv(os.path.join(output_dir, f"{title_prefix}_coefficients.csv"), index=False)
+    print(f"Saved: {title_prefix}_coefficients.csv")
+
+    with open(os.path.join(output_dir, f"{title_prefix}_summary.txt"), 'w') as f:
+        f.write("=" * 30 + "\n")
+        f.write("LOGISTIC REGRESSION SUMMARY\n")
+        f.write("=" * 30 + "\n\n")
+
+        f.write("MODEL PERFORMANCE\n")
+        f.write("-" * 30 + "\n")
+        f.write(f"Training Accuracy: {lr_results['train_score']:.6f}\n")
+        f.write(f"Test Accuracy: {lr_results['test_score']:.6f}\n")
+        f.write(f"ROC AUC Score: {lr_results['roc_auc']:.6f}\n\n")
+
+        f.write("CLASSIFICATION REPORT\n")
+        f.write("-" * 30 + "\n")
+        f.write(lr_results['classification_report'])
+        f.write("\n")
+
+        f.write("CONFUSION MATRIX\n")
+        f.write("-" * 30 + "\n")
+        # Fixed spacing for confusion matrix
+        f.write("                 Predicted\n")
+        f.write("                0kbar  6kbar\n")
+        f.write(
+            f"Actual 0kbar:    {lr_results['confusion_matrix'][0, 0]:4d}   {lr_results['confusion_matrix'][0, 1]:4d}\n")
+        f.write(
+            f"       6kbar:    {lr_results['confusion_matrix'][1, 0]:4d}   {lr_results['confusion_matrix'][1, 1]:4d}\n\n")
+
+        f.write("MODEL INFORMATION\n")
+        f.write("-" * 30 + "\n")
+        f.write(f"Regularization strength (C): {lr_results['model'].C}\n")
+        f.write(f"Solver: {lr_results['model'].solver}\n")
+        if hasattr(lr_results['model'], 'n_iter_'):
+            f.write(f"Number of iterations: {lr_results['model'].n_iter_[0]}\n")
+        else:
+            f.write("Number of iterations: N/A\n")
+        f.write("\n")
+
+        f.write("DATA INFORMATION\n")
+        f.write("-" * 30 + "\n")
+        f.write(f"Total samples: {len(lr_results['y_train']) + len(lr_results['y_test'])}\n")
+        f.write(f"Training samples: {len(lr_results['y_train'])}\n")
+        f.write(f"Test samples: {len(lr_results['y_test'])}\n")
+        f.write(f"Feature dimension: {lr_results['X_train'].shape[1]}\n")
+        f.write(
+            f"Class distribution (0kbar/6kbar): {np.sum(lr_results['y_train'] == 0)} / {np.sum(lr_results['y_train'] == 1)}\n")
+
+        f.write("\n" + "=" * 60 + "\n")
+
+    print(f"Saved: {title_prefix}_summary.txt")
+    print(f"\nAll logistic regression files saved to: {output_dir}")
+
 ### EXECUTE MAIN FUNCTIONS ###
 
 dataset1 = {}
@@ -589,3 +777,30 @@ print(f"Total explained variance by {pca_results['pca'].n_components_} component
 plot_pca_results(pca_results, output_dir, "Step_Number_Regression")
 save_pca_results_to_csv(pca_results, output_dir, "Step_Number_Regression")
 plot_pca_persistence_components(pca=pca_results['pca'],vectorize_spec=vectorize_spec,output_dir=output_dir,title_prefix="Step_Number_Regression")
+
+### EXECUTE LOGISTIC REGRESSION ANALYSIS ###
+
+# Prepare binary labels (0 for dataset_1/0kbar, 1 for dataset_2/6kbar)
+all_labels = np.array([0] * len(pds_1) + [1] * len(pds_2))
+
+print("\nPerforming logistic regression")
+lr_results = perform_logistic_regression(pd_vectors, all_labels, test_size=0.2, random_state=69, C=0.01,solver="lbfgs")
+
+print("\nLOGISTIC REGRESSION RESULTS")
+print("=" * 30)
+print(f"Training Accuracy: {lr_results['train_score']:.4f}")
+print(f"Test Accuracy: {lr_results['test_score']:.4f}")
+print(f"ROC AUC Score: {lr_results['roc_auc']:.4f}")
+print("\nClassification Report:")
+print(lr_results['classification_report'])
+
+plot_logistic_regression_results(lr_results, output_dir, "Step_Number_Logistic")
+
+print("\nGenerating coefficient persistence images")
+
+plot_logistic_regression_coefficients(lr_results['model'], vectorize_spec, output_dir, title_prefix="Step_Number_Logistic",cmap="RdBu_r",midpoint=0.0)
+
+print("\nSaving logistic regression results")
+save_logistic_regression_results(lr_results, output_dir, "Step_Number_Logistic")
+
+print("Fin")

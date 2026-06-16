@@ -8,6 +8,9 @@ Creation of the training data can be performed with the following steps:
 - To separate the individual frames, use the command `split -l M -d -a 3 --additional_suffix=.lmp training_set.txt step_`. This will create a series of `.lmp` files.
 - Use the `lmp_to_xyz.py` script in a loop to convert the training data files into `.xyz` format.
 
-From this point onward, we will primarily use the `Ring_PCA_analysis.py` script. This script is under development and is going to be updated frequently until it is completely functional. As of now, the script can successfully perform basic analysis of the last frames of the two data sets. The PCA technically works, *however the model performance is quite poor*. This will be improved with time.
+From this point onward, we will primarily use the `Ring_PCA_analysis.py` script. This script is under development and is going to be updated frequently until it is completely functional. As of now, the script can successfully perform basic analysis of the last frames of the two data sets. The PCA technically works, *however, the model performance is quite poor*. This will be improved with time.
+
+To try to remedy the problem with the model performance, a couple of scan functions have been made:
+- The function `resolution_scan.py` will be used to run the main function over a set of persistence image grid resolutions. The sigma value and other variational parameters are held constant
 
 Future additions to the script will include projecting the PCA results to PH analysis, the addition of logistic regression, and the addition of inverse analysis

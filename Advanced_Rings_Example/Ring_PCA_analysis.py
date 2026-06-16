@@ -21,7 +21,7 @@ dataset_2 = r"E:\Path\To\Second Training Set"
 training_set1 = sorted([f for f in os.listdir(dataset_1) if f.endswith(".xyz")])
 training_set2 = sorted([f for f in os.listdir(dataset_2) if f.endswith(".xyz")])
 
-output_dir = r"E:\Path\To\Output Directory"
+#output_dir = r"E:\Path\To\Output Directory"
 
 last_file_set1 = os.path.join(dataset_1, training_set1[-1])
 last_file_set2 = os.path.join(dataset_2, training_set2[-1])
@@ -720,87 +720,117 @@ def save_logistic_regression_results(lr_results, output_dir, title_prefix="Logis
     print(f"Saved: {title_prefix}_summary.txt")
     print(f"\nAll logistic regression files saved to: {output_dir}")
 
-### EXECUTE MAIN FUNCTIONS ###
+def run_analysis(resolution,output_dir,dataset_1,dataset_2,training_set1,training_set2,weight_function="w3",sigma=0.05,n_components=20,test_size=0.2,random_state=69):
 
-dataset1 = {}
-dataset2 = {}
+    os.makedirs(output_dir, exist_ok=True)
 
-dataset1["pd"], dataset1["name"] = make_PD(last_file_set1, "0kbar", output_dir)
-dataset2["pd"], dataset2["name"] = make_PD(last_file_set2,"6kbar",output_dir)
+    last_file_set1 = os.path.join(dataset_1, training_set1[-1])
+    last_file_set2 = os.path.join(dataset_2, training_set2[-1])
 
-dataset1["birth_lifetime"] = compute_birth_lifetime(dataset1["pd"])
-dataset2["birth_lifetime"] = compute_birth_lifetime(dataset2["pd"])
+    print(f"\nRunning analysis at resolution = {resolution}")
+    print(f"Output directory: {output_dir}")
 
-save_parameter_distributions(dataset1["birth_lifetime"],"0kbar",output_dir)
-save_parameter_distributions(dataset2["birth_lifetime"],"6kbar",output_dir)
+    ### EXECUTE LAST FRAME FUNCTIONS ###
 
-### MAKE PLOTTY ###
+    print("\nReading XYZ files")
 
-make_PD_plot(dataset1["pd"],dataset1["name"],output_dir)
-make_PD_plot(dataset2["pd"],dataset2["name"],output_dir)
-make_lifetime_birth_plot(dataset1["birth_lifetime"],dataset1["name"],output_dir,log_x=False,log_y=False,point_size=4)
-make_lifetime_birth_plot(dataset2["birth_lifetime"],dataset2["name"],output_dir,log_x=False,log_y=False,point_size=4)
-make_persistence_surface_and_image(dataset1["birth_lifetime"],dataset1["name"],output_dir,weight_function="w3",
-    sigma=0.008,resolution=128,cmap="magma",levels=100)
-make_persistence_surface_and_image(dataset2["birth_lifetime"],dataset2["name"],output_dir,weight_function="w3",
-    sigma=0.008,resolution=128,cmap="magma",levels=100)
+    dataset1 = {}
+    dataset2 = {}
 
-### PCA RELATED STUFF ###
+    dataset1["pd"], dataset1["name"] = make_PD(last_file_set1, "0kbar", output_dir)
+    dataset2["pd"], dataset2["name"] = make_PD(last_file_set2, "6kbar", output_dir)
 
-print("\nPreparing all PD data for PCA")
-pds_1, steps_1, names_1 = prepare_PD_data_with_steps(dataset_1, training_set1, "0kbar", output_dir)
-pds_2, steps_2, names_2 = prepare_PD_data_with_steps(dataset_2, training_set2, "6kbar", output_dir)
+    dataset1["birth_lifetime"] = compute_birth_lifetime(dataset1["pd"])
+    dataset2["birth_lifetime"] = compute_birth_lifetime(dataset2["pd"])
 
-all_pds = pds_1 + pds_2
-all_step_numbers = np.concatenate([steps_1, steps_2])
-all_names = names_1 + names_2
+    save_parameter_distributions(dataset1["birth_lifetime"], "0kbar", output_dir)
+    save_parameter_distributions(dataset2["birth_lifetime"], "6kbar", output_dir)
 
-print(f"Total samples: {len(all_pds)}")
-print(f"Step numbers range: {all_step_numbers.min()} to {all_step_numbers.max()}")
-print(f"Unique step numbers: {np.unique(all_step_numbers)}")
-print(f"Dataset 1 steps: {steps_1}")
-print(f"Dataset 2 steps: {steps_2}")
+    ### MAKE PLOTTY ###
 
-print("\nVectorizing persistence diagrams")
-pd_vectors, vectorize_spec = vectorize_persistence_diagrams(all_pds, weight_function="w3", birth_range=(0, 8), resolution=128, sigma=0.06)
-print(f"Vectorized data shape: {pd_vectors.shape}")
+    make_PD_plot(dataset1["pd"], dataset1["name"], output_dir)
+    make_PD_plot(dataset2["pd"], dataset2["name"], output_dir)
 
-print("\nPerforming PCA regression")
-pca_results = perform_pca_regression(pd_vectors, all_step_numbers, n_components=20, test_size=0.2, random_state=42)
+    make_lifetime_birth_plot(dataset1["birth_lifetime"],dataset1["name"],output_dir,log_x=False,log_y=False,point_size=4)
+    make_lifetime_birth_plot(dataset2["birth_lifetime"],dataset2["name"],output_dir,log_x=False,log_y=False,point_size=4)
 
-print("PCA REGRESSION RESULTS")
-print("=" * 30)
-print(f"Training R² score: {pca_results['train_score']:.4f}")
-print(f"Test R² score: {pca_results['test_score']:.4f}")
-print(f"Total explained variance by {pca_results['pca'].n_components_} components: {np.sum(pca_results['pca'].explained_variance_ratio_):.4f}")
+    make_persistence_surface_and_image(dataset1["birth_lifetime"],dataset1["name"],output_dir,weight_function=weight_function,sigma=sigma,resolution=resolution,cmap="magma",levels=100)
+    make_persistence_surface_and_image(dataset2["birth_lifetime"],dataset2["name"],output_dir,weight_function=weight_function,sigma=sigma,resolution=resolution,cmap="magma",levels=100)
 
-plot_pca_results(pca_results, output_dir, "Step_Number_Regression")
-save_pca_results_to_csv(pca_results, output_dir, "Step_Number_Regression")
-plot_pca_persistence_components(pca=pca_results['pca'],vectorize_spec=vectorize_spec,output_dir=output_dir,title_prefix="Step_Number_Regression")
+    ### PCA ANALYSIS ###
 
-### EXECUTE LOGISTIC REGRESSION ANALYSIS ###
+    print("\nPreparing all PD data for PCA")
+    pds_1, steps_1, names_1 = prepare_PD_data_with_steps(dataset_1, training_set1, "0kbar", output_dir)
+    pds_2, steps_2, names_2 = prepare_PD_data_with_steps(dataset_2, training_set2, "6kbar", output_dir)
 
-# Prepare binary labels (0 for dataset_1/0kbar, 1 for dataset_2/6kbar)
-all_labels = np.array([0] * len(pds_1) + [1] * len(pds_2))
+    all_pds = pds_1 + pds_2
+    all_step_numbers = np.concatenate([steps_1, steps_2])
+    all_names = names_1 + names_2
 
-print("\nPerforming logistic regression")
-lr_results = perform_logistic_regression(pd_vectors, all_labels, test_size=0.2, random_state=69, C=0.01,solver="lbfgs")
+    print(f"Total samples: {len(all_pds)}")
+    print(f"Step numbers range: {all_step_numbers.min()} to {all_step_numbers.max()}")
+    print(f"Unique step numbers: {np.unique(all_step_numbers)}")
+    print(f"Dataset 1 steps: {steps_1}")
+    print(f"Dataset 2 steps: {steps_2}")
 
-print("\nLOGISTIC REGRESSION RESULTS")
-print("=" * 30)
-print(f"Training Accuracy: {lr_results['train_score']:.4f}")
-print(f"Test Accuracy: {lr_results['test_score']:.4f}")
-print(f"ROC AUC Score: {lr_results['roc_auc']:.4f}")
-print("\nClassification Report:")
-print(lr_results['classification_report'])
+    print("\nVectorizing persistence diagrams")
+    pd_vectors, vectorize_spec = vectorize_persistence_diagrams(all_pds,weight_function=weight_function,birth_range=(0, 8),resolution=resolution,sigma=sigma)
 
-plot_logistic_regression_results(lr_results, output_dir, "Step_Number_Logistic")
+    print(f"Vectorized data shape: {pd_vectors.shape}")
 
-print("\nGenerating coefficient persistence images")
+    print("\nPerforming PCA regression")
+    pca_results = perform_pca_regression(pd_vectors,all_step_numbers,n_components=n_components,test_size=test_size,random_state=random_state)
 
-plot_logistic_regression_coefficients(lr_results['model'], vectorize_spec, output_dir, title_prefix="Step_Number_Logistic",cmap="RdBu_r",midpoint=0.0)
+    print("PCA REGRESSION RESULTS")
+    print("=" * 30)
+    print(f"Training R^2 score: {pca_results['train_score']:.4f}")
+    print(f"Test R^2 score: {pca_results['test_score']:.4f}")
 
-print("\nSaving logistic regression results")
-save_logistic_regression_results(lr_results, output_dir, "Step_Number_Logistic")
+    dataset_labels = ["0kbar"] * len(pds_1) + ["6kbar"] * len(pds_2)
 
-print("Fin")
+    pca_prefix = f"Step_Number_Regression_res{resolution}"
+
+    plot_pca_results(pca_results,output_dir,pca_prefix,pd_vectors=pd_vectors,dataset_labels=dataset_labels)
+    save_pca_results_to_csv(pca_results,output_dir,pca_prefix)
+    plot_pca_persistence_components(pca=pca_results["pca"],vectorize_spec=vectorize_spec,output_dir=output_dir,title_prefix=pca_prefix)
+
+    ### LOGISTIC REGRESSION ANALYSIS ###
+
+    all_labels = np.array([0] * len(pds_1) + [1] * len(pds_2))
+
+    print("\nPerforming logistic regression")
+    lr_results = perform_logistic_regression(pd_vectors,all_labels,test_size=test_size,random_state=random_state,C=0.01,solver="lbfgs")
+
+    print("\nLOGISTIC REGRESSION RESULTS")
+    print("=" * 30)
+    print(f"Training Accuracy: {lr_results['train_score']:.4f}")
+    print(f"Test Accuracy: {lr_results['test_score']:.4f}")
+    print(f"ROC AUC Score: {lr_results['roc_auc']:.4f}")
+    print("\nClassification Report:")
+    print(lr_results["classification_report"])
+
+    lr_prefix = f"Step_Number_Logistic_res{resolution}"
+    plot_logistic_regression_results(lr_results,output_dir,lr_prefix)
+
+    print("\nGenerating coefficient persistence images")
+    plot_logistic_regression_coefficients(lr_results["model"],vectorize_spec,output_dir,title_prefix=lr_prefix,cmap="RdBu_r",midpoint=0.0)
+
+    print("\nSaving logistic regression results")
+    save_logistic_regression_results(lr_results,output_dir,lr_prefix)
+
+    print(f"\nFinished resolution = {resolution}")
+    return {
+        "resolution": resolution,
+        "output_dir": output_dir,
+        "pca_train_r2": pca_results["train_score"],
+        "pca_test_r2": pca_results["test_score"],
+        "logistic_train_acc": lr_results["train_score"],
+        "logistic_test_acc": lr_results["test_score"],
+        "roc_auc": lr_results["roc_auc"]}
+    
+if __name__ == "__main__":
+
+    output_dir = os.getcwd()
+
+    run_analysis(resolution=128,output_dir=output_dir,dataset_1=dataset_1,dataset_2=dataset_2,training_set1=training_set1,
+        training_set2=training_set2,weight_function="w3",sigma=0.05)

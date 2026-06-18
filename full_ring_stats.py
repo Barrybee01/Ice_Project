@@ -13,11 +13,16 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()  # Process rank
 size = comm.Get_size()  # Total number of processes
 
-pd1 = hc.PDList("0kbar_decompress_finalstate.pdgm").dth_diagram(1)
-print('The pdgm file has been read')
-
 R_H = 0.775
 R_O = 0.175
+
+amorph_ice = ase.io.read('infile.xyz')
+weights = np.array([R_O**2 if atom == "O" else R_H**2 for atom in amorph_ice.get_chemical_symbols()]) #weighting is not explicitly required
+
+pd1 = hc.PDList.from_alpha_filtration(amorph_ice.get_positions(),vertex_symbols=amorph_ice.get_chemical_symbols(),
+        weight=weights, save_boundary_map=True, save_phtrees=True, save_to='file_name.pdgm').dth_diagram(1)
+
+print('The persistence diagram has been made') #for log file
 
 max_atoms = 30
 

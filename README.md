@@ -53,7 +53,6 @@ The `FSDP.py` script requires a CSV file that contains the ring sizes for each t
 **KNOWN PROBLEMS AND FUTURE CHANGES:**
 - Parallelization has been implemented in the `ring_stats.py` script, but it has not been benchmarked to suggest any specific amount of resources given a specific input data size.
 - The `ring_stats.py` and `full_ring_stats.py` scripts will eventually be merged. I envision a user-defined arg that one can change so that the script knows the extent of the persistence diagram to be studied (rectangular mask, polygon mask, full PD).
-- The `ring_stats.py` and `full_ring_stats.py` scripts will be updated so that they can take an XYZ file as input instead of the more prohibitive `.pdgm` files.
 - The Homcloud library has been known to contain memory leaks in different versions. This may cause any of the ring statistic scripts to break. There are try/except cases implemented in these scripts to be able to avoid the Homcloud problems that result in OOM issues, but this may need to be modified in the future if similar issues arise.
 - Ring statistics script will be updated to output a series of text files that contain information on the birth, death, and lifetime distributions.
 - A script will be developed to further process some of the raw output of the original ring statistics calculations.

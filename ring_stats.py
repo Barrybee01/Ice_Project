@@ -15,11 +15,16 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()  # Process rank
 size = comm.Get_size()  # Total number of processes
 
-pd1 = hc.PDList("35kbar_H2O_weighted.pdgm").dth_diagram(1) #change pdgm file as needed
-print('The pdgm file has been read') #for log file
-
 R_H = 0.775
 R_O = 0.175
+
+amorph_ice = ase.io.read('infile.xyz')
+weights = np.array([R_O**2 if atom == "O" else R_H**2 for atom in amorph_ice.get_chemical_symbols()]) #weighting is not explicitly required
+
+pd1 = hc.PDList.from_alpha_filtration(amorph_ice.get_positions(),vertex_symbols=amorph_ice.get_chemical_symbols(),
+        weight=weights, save_boundary_map=True, save_phtrees=True, save_to='file_name.pdgm').dth_diagram(1)
+
+print('The persistence diagram has been made') #for log file
 
 #Rectangular mask, uncomment and change relevant_pairs variable if this needs to be used
 #birth_min, birth_max = 0.3, 0.75

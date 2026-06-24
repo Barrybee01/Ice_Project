@@ -8,7 +8,8 @@ import matplotlib.colors as colors
 import homcloud.interface as hc
 import sklearn.linear_model as lm  # Machine learning
 from sklearn.decomposition import PCA  # for PCA
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import roc_auc_score, silhouette_score, matthews_corrcoef
 import pandas as pd
 import seaborn as sns
 import scipy
@@ -71,8 +72,7 @@ def make_PD_plot(pd1, output_name, output_dir):
     save_figure(fig, output_dir,f"{output_name}_PD.png")
     return fig
 
-def make_lifetime_birth_plot(birth_lifetime_df, output_name, output_dir, point_size=8, alpha=0.7,
-        figsize=(8, 6), log_x=False, log_y=False):
+def make_lifetime_birth_plot(birth_lifetime_df, output_name, output_dir, point_size=8, alpha=0.7, figsize=(8, 6), log_x=False, log_y=False):
     sns.set_style("white")
     fig, ax = plt.subplots(figsize=figsize)
     sns.scatterplot(data=birth_lifetime_df,x="Birth",y="Lifetime",s=point_size,alpha=alpha,ax=ax)
@@ -259,23 +259,22 @@ def plot_pca_results(pca_results, output_dir, title_prefix="PCA_Regression"): #I
     fig2, ax2 = plt.subplots(figsize=(8, 8)) #predictions vs actual (test set)
 
     df_pred = pd.DataFrame({
-        'Actual Step Number': pca_results['y_test'],
-        'Predicted Step Number': pca_results['y_pred_test']
-    })
+    'Actual Average Lifetime': pca_results['y_test'],
+    'Predicted Average Lifetime': pca_results['y_pred_test']})
 
-    sns.regplot(data=df_pred, x='Actual Step Number', y='Predicted Step Number',
+    sns.regplot(data=df_pred, x='Actual Average Lifetime', y='Predicted Average Lifetime',
                 scatter=False,
                 line_kws={'color': 'red', 'linewidth': 2, 'linestyle': '--'},
                 ax=ax2)
 
-    ax2.scatter(df_pred['Actual Step Number'], df_pred['Predicted Step Number'],alpha=0.6, s=60, edgecolors='black', linewidths=0.5)
+    ax2.scatter(df_pred['Actual Average Lifetime'], df_pred['Predicted Average Lifetime'],alpha=0.6, s=60, edgecolors='black', linewidths=0.5)
 
-    min_val = min(df_pred['Actual Step Number'].min(), df_pred['Predicted Step Number'].min())
-    max_val = max(df_pred['Actual Step Number'].max(), df_pred['Predicted Step Number'].max())
+    min_val = min(df_pred['Actual Average Lifetime'].min(), df_pred['Predicted Average Lifetime'].min())
+    max_val = max(df_pred['Actual Average Lifetime'].max(), df_pred['Predicted Average Lifetime'].max())
 
-    ax2.plot([min_val, max_val], [min_val, max_val], 'g--', linewidth=2, label='Perfect prediction', alpha=0.7)
-    ax2.set_xlabel('Actual Step Number', fontsize=14)
-    ax2.set_ylabel('Predicted Step Number', fontsize=14)
+    ax2.plot([min_val, max_val], [min_val, max_val], 'g--', linewidth=2, label='Predicted Average Lifetime', alpha=0.7)
+    ax2.set_xlabel('Actual Average Lifetime', fontsize=14)
+    ax2.set_ylabel('Predicted Average Lifetime', fontsize=14)
     ax2.set_title(f'Test Set Predictions\nR² = {pca_results["test_score"]:.4f}', fontsize=14)
     ax2.legend(fontsize=12)
     ax2.set_aspect('equal', adjustable='box')
@@ -286,10 +285,10 @@ def plot_pca_results(pca_results, output_dir, title_prefix="PCA_Regression"): #I
     residuals = pca_results['y_test'] - pca_results['y_pred_test']
 
     df_residual = pd.DataFrame({
-        'Predicted Step Number': pca_results['y_pred_test'],
+        'Predicted Average Lifetime': pca_results['y_pred_test'],
         'Residuals': residuals})
 
-    sns.scatterplot(data=df_residual, x='Predicted Step Number', y='Residuals', alpha=0.6, s=50, color='coral', edgecolor='black', ax=ax3)
+    sns.scatterplot(data=df_residual, x='Predicted Average Lifetime', y='Residuals', alpha=0.6, s=50, color='coral', edgecolor='black', ax=ax3)
     ax3.axhline(y=0, color='red', linestyle='--', linewidth=2)
     mean_residual = np.mean(residuals)
     std_residual = np.std(residuals)
@@ -719,6 +718,30 @@ def save_logistic_regression_results(lr_results, output_dir, title_prefix="Logis
 
     print(f"Saved: {title_prefix}_summary.txt")
     print(f"\nAll logistic regression files saved to: {output_dir}")
+
+def save_model_separation_scores(pd_vectors, all_labels, pca_results, lr_results, output_dir, title_prefix="Model_Separation_Scores", cv=5):
+    all_pca = pca_results["pca"].transform(pd_vectors)
+    silhouette = silhouette_score(all_pca[:, :2],all_labels)
+
+    mcc = matthews_corrcoef(lr_results["y_test"],lr_results["y_pred_test"])
+
+    cv_scores = cross_val_score(lm.LogisticRegression(C=0.01,solver="lbfgs", max_iter=1000),pd_vectors,all_labels,cv=cv,scoring="accuracy")
+
+    output_file = os.path.join(output_dir,f"{title_prefix}.txt")
+
+    with open(output_file, "w") as f:
+
+        f.write("MODEL SEPARATION SCORES\n")
+        f.write("=" * 40 + "\n\n")
+
+        f.write(f"ROC-AUC: {lr_results['roc_auc']:.6f}\n")
+        f.write(f"MCC: {mcc:.6f}\n")
+        f.write(f"Silhouette Score: {silhouette:.6f}\n\n")
+
+        f.write(f"Cross-Validated Accuracy Mean: "f"{cv_scores.mean():.6f}\n")
+        f.write(f"Cross-Validated Accuracy Std: "f"{cv_scores.std():.6f}\n")
+
+    print(f"Saved: {output_file}")
 
 def run_analysis(resolution,output_dir,dataset_1,dataset_2,training_set1,training_set2,weight_function="w3",sigma=0.05,n_components=20,test_size=0.2,random_state=69):
 

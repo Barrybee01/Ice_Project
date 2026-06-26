@@ -1,109 +1,50 @@
-def parse_type_map(type_map=None):
-    if type_map is None:
-        return {}
+import numpy as np
 
-    parsed_map = {}
-
-    for key, value in type_map.items():
-        parsed_map[int(key)] = str(value)
-
-    return parsed_map
+def unscale_coordinates(xs, ys, zs, box_bounds):
+    x = xs * (box_bounds[0][1] - box_bounds[0][0]) + box_bounds[0][0]
+    y = ys * (box_bounds[1][1] - box_bounds[1][0]) + box_bounds[1][0]
+    z = zs * (box_bounds[2][1] - box_bounds[2][0]) + box_bounds[2][0]
+    return x, y, z
 
 
-def atom_type_to_symbol(atom_type, type_map=None):
-    type_map = parse_type_map(type_map)
+def convert_single_frame(lmp_file, xyz_file):
+    with open(lmp_file, 'r') as infile, open(xyz_file, 'w') as outfile:
 
-    return type_map.get(atom_type, f"X{atom_type}")
+        infile.readline()  # ITEM: TIMESTEP
+        timestep = infile.readline().strip()
 
+        infile.readline()  # ITEM: NUMBER OF ATOMS
+        num_atoms = int(infile.readline().strip())
 
-def lmp_to_xyz(lmp_file, xyz_file, type_map=None):
-    type_map = parse_type_map(type_map)
+        infile.readline()  # ITEM: BOX BOUNDS
+        box_bounds = []
+        for _ in range(3):
+            bounds = list(map(float, infile.readline().strip().split()))
+            box_bounds.append(bounds)
 
-    with open(lmp_file, "r") as infile:
-        lines = infile.readlines()
+        infile.readline()  # ITEM: ATOMS ...
 
-    xlo = xhi = None
-    ylo = yhi = None
-    zlo = zhi = None
-    xy = 0.0
-    xz = 0.0
-    yz = 0.0
+        outfile.write(f"{num_atoms}\n")
+        outfile.write(f"Timestep: {timestep}\n")
 
-    atoms = []
-    read_atoms = False
+        for _ in range(num_atoms):
+            data = infile.readline().strip().split()
 
-    for line in lines:
-        stripped = line.strip()
-        parts = stripped.split()
+            atom_type = data[1]
+            xs = float(data[2])
+            ys = float(data[3])
+            zs = float(data[4])
 
-        if len(parts) >= 4 and parts[-2:] == ["xlo", "xhi"]:
-            xlo = float(parts[0])
-            xhi = float(parts[1])
+            x, y, z = unscale_coordinates(xs, ys, zs, box_bounds)
 
-        elif len(parts) >= 4 and parts[-2:] == ["ylo", "yhi"]:
-            ylo = float(parts[0])
-            yhi = float(parts[1])
+            # Map atom types
+            if atom_type == '1':
+                atom_type = 'O'
+            elif atom_type == '2':
+                atom_type = 'H'
 
-        elif len(parts) >= 4 and parts[-2:] == ["zlo", "zhi"]:
-            zlo = float(parts[0])
-            zhi = float(parts[1])
-
-        elif len(parts) >= 6 and parts[-3:] == ["xy", "xz", "yz"]:
-            xy = float(parts[0])
-            xz = float(parts[1])
-            yz = float(parts[2])
-
-        elif stripped.startswith("Atoms"):
-            read_atoms = True
-            continue
-
-        elif read_atoms:
-            if not stripped:
-                continue
-
-            if stripped.startswith("#"):
-                continue
-
-            parts = stripped.split()
-
-            if len(parts) < 5:
-                continue
-
-            atom_id = int(parts[0])
-            atom_type = int(parts[1])
-            x = float(parts[2])
-            y = float(parts[3])
-            z = float(parts[4])
-
-            atoms.append((atom_id, atom_type, x, y, z))
-
-    if xlo is None or xhi is None:
-        raise ValueError("Could not find xlo/xhi bounds in LMP file.")
-
-    if ylo is None or yhi is None:
-        raise ValueError("Could not find ylo/yhi bounds in LMP file.")
-
-    if zlo is None or zhi is None:
-        raise ValueError("Could not find zlo/zhi bounds in LMP file.")
-
-    a = xhi - xlo
-    b = yhi - ylo
-    c = zhi - zlo
-
-    atoms.sort(key=lambda atom: atom[0])
-
-    with open(xyz_file, "w") as outfile:
-        outfile.write(f"{len(atoms)}\n")
-        outfile.write(f"{a:.10f} {b:.10f} {c:.10f} {xy:.10f} {xz:.10f} {yz:.10f}\n")
-
-        for atom_id, atom_type, x, y, z in atoms:
-            symbol = atom_type_to_symbol(atom_type, type_map)
-            outfile.write(f"{symbol} {x:.10f} {y:.10f} {z:.10f}\n")
+            outfile.write(f"{atom_type} {x:.6f} {y:.6f} {z:.6f}\n")
 
 
 if __name__ == "__main__":
-    lmp_to_xyz(
-        "iceIV_ortho_x464.lmp",
-        "iceIV_ortho_x464.xyz",
-        type_map={1: "O", 2: "H"},
-    )
+    convert_single_frame("final_state.lmp", "final_state.xyz")

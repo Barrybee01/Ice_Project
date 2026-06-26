@@ -1,12 +1,21 @@
-def atom_type_to_symbol(atom_type):
-    if atom_type == 1:
-        return "O"
-    elif atom_type == 2:
-        return "H"
-    else:
-        return f"X{atom_type}"
+def parse_type_map(type_map=None):
+    if type_map is None:
+        return {}
 
-def lmp_to_xyz(lmp_file, xyz_file):
+    parsed_map = {}
+
+    for key, value in type_map.items():
+        parsed_map[int(key)] = str(value)
+    return parsed_map
+
+def atom_type_to_symbol(atom_type, type_map=None):
+    type_map = parse_type_map(type_map)
+
+    return type_map.get(atom_type, f"X{atom_type}")
+
+def lmp_to_xyz(lmp_file, xyz_file, type_map=None):
+    type_map = parse_type_map(type_map)
+
     with open(lmp_file, "r") as infile:
         lines = infile.readlines()
 
@@ -85,5 +94,5 @@ def lmp_to_xyz(lmp_file, xyz_file):
         outfile.write(f"{a:.10f} {b:.10f} {c:.10f} {xy:.10f} {xz:.10f} {yz:.10f}\n")
 
         for atom_id, atom_type, x, y, z in atoms:
-            symbol = atom_type_to_symbol(atom_type)
+            symbol = atom_type_to_symbol(atom_type, type_map)
             outfile.write(f"{symbol} {x:.10f} {y:.10f} {z:.10f}\n")

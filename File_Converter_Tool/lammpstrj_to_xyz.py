@@ -13,10 +13,18 @@ def atom_type_to_symbol(atom_type, type_map=None):
     return type_map.get(atom_type, f"X{atom_type}")
 
 
-def unscale_coordinates(xs, ys, zs, box_bounds):
-    x = xs * (box_bounds[0][1] - box_bounds[0][0]) + box_bounds[0][0]
-    y = ys * (box_bounds[1][1] - box_bounds[1][0]) + box_bounds[1][0]
-    z = zs * (box_bounds[2][1] - box_bounds[2][0]) + box_bounds[2][0]
+def unscale_coordinates(xs, ys, zs, box_bounds, xy=0.0, xz=0.0, yz=0.0):
+    xlo = box_bounds[0][0]
+    ylo = box_bounds[1][0]
+    zlo = box_bounds[2][0]
+
+    lx = box_bounds[0][1] - box_bounds[0][0]
+    ly = box_bounds[1][1] - box_bounds[1][0]
+    lz = box_bounds[2][1] - box_bounds[2][0]
+
+    x = xlo + xs * lx + ys * xy + zs * xz
+    y = ylo + ys * ly + zs * yz
+    z = zlo + zs * lz
     return x, y, z
 
 
@@ -27,7 +35,6 @@ def read_box_bounds(lines, start_index):
     yz = 0.0
 
     box_header = lines[start_index].split()
-
     triclinic = ("xy" in box_header and "xz" in box_header and "yz" in box_header)
 
     for i in range(3):
@@ -49,7 +56,6 @@ def read_box_bounds(lines, start_index):
     a = box_bounds[0][1] - box_bounds[0][0]
     b = box_bounds[1][1] - box_bounds[1][0]
     c = box_bounds[2][1] - box_bounds[2][0]
-
     return box_bounds, a, b, c, xy, xz, yz
 
 
@@ -101,7 +107,6 @@ def get_coordinate_indices(atom_columns, coordinate_mode):
         x_index = atom_columns.index("xu")
         y_index = atom_columns.index("yu")
         z_index = atom_columns.index("zu")
-
         return x_index, y_index, z_index, "unscaled"
 
     raise ValueError("Could not find xs/ys/zs, x/y/z, or xu/yu/zu columns.")
@@ -167,7 +172,7 @@ def lammpstrj_to_xyz(lammpstrj_file, xyz_file, type_map=None, coordinate_mode="a
                 z_raw = float(parts[z_index])
 
                 if active_coordinate_mode == "scaled":
-                    x, y, z = unscale_coordinates(x_raw, y_raw, z_raw, box_bounds)
+                    x, y, z = unscale_coordinates(x_raw,y_raw,z_raw,box_bounds,xy,xz,yz,)
                 else:
                     x, y, z = x_raw, y_raw, z_raw
 

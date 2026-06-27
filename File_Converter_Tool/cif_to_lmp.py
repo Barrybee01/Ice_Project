@@ -176,8 +176,3 @@ def cif_to_lmp(cif_file, output_lmp, symbol_map=None):
             outfile.write(
                 f"{atom_id:8d} {atom_type:4d} "
                 f"{x:15.9f} {y:15.9f} {z:15.9f}\n")
-
-if __name__ == "__main__":
-    cif_to_lmp("iceIV_ortho_x464.cif", "iceIV_ortho_x464_from_cif.lmp", symbol_map={"O": 1, "H": 2})
-                f"{atom_id:8d} {atom_type:4d} "
-                f"{x:15.9f} {y:15.9f} {z:15.9f}\n")

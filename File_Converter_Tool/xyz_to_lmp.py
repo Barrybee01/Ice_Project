@@ -72,9 +72,7 @@ def xyz_to_lmp(xyz_file, lmp_file, symbol_map=None):
         outfile.write(f"0.0 {a:.10f} xlo xhi\n")
         outfile.write(f"0.0 {b:.10f} ylo yhi\n")
         outfile.write(f"0.0 {c:.10f} zlo zhi\n")
-
-        if xy != 0.0 or xz != 0.0 or yz != 0.0:
-            outfile.write(f"{xy:.10f} {xz:.10f} {yz:.10f} xy xz yz\n")
+        outfile.write(f"{xy:.10f} {xz:.10f} {yz:.10f} xy xz yz\n\n")
 
         outfile.write("\n")
         outfile.write("Atoms # atomic\n\n")

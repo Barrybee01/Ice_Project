@@ -1,3 +1,5 @@
+import math
+
 def parse_type_map(type_map=None):
     if type_map is None:
         return {}
@@ -11,6 +13,43 @@ def parse_type_map(type_map=None):
 def atom_type_to_symbol(atom_type, type_map=None):
     type_map = parse_type_map(type_map)
     return type_map.get(atom_type, f"X{atom_type}")
+
+def vector_length(vector):
+    return math.sqrt(sum(component ** 2 for component in vector))
+
+def angle_between_vectors(vector_1, vector_2):
+    dot_product = sum(a * b for a, b in zip(vector_1, vector_2))
+
+    length_1 = vector_length(vector_1)
+    length_2 = vector_length(vector_2)
+
+    cos_angle = dot_product / (length_1 * length_2)
+    cos_angle = max(-1.0, min(1.0, cos_angle))
+    return math.degrees(math.acos(cos_angle))
+
+def get_cell_parameters(xlo, xhi, ylo, yhi, zlo, zhi, xy, xz, yz):
+    lx = xhi - xlo
+    ly = yhi - ylo
+    lz = zhi - zlo
+
+    a_vector = (lx, 0.0, 0.0)
+    b_vector = (xy, ly, 0.0)
+    c_vector = (xz, yz, lz)
+
+    a = vector_length(a_vector)
+    b = vector_length(b_vector)
+    c = vector_length(c_vector)
+
+    alpha = angle_between_vectors(b_vector, c_vector)
+    beta = angle_between_vectors(a_vector, c_vector)
+    gamma = angle_between_vectors(a_vector, b_vector)
+    return a, b, c, alpha, beta, gamma
+
+def cartesian_to_fractional(x, y, z, xlo, ylo, zlo, lx, ly, lz, xy, xz, yz):
+    fz = (z - zlo) / lz
+    fy = (y - ylo - yz * fz) / ly
+    fx = (x - xlo - xy * fy - xz * fz) / lx
+    return fx, fy, fz
 
 def lmp_to_cif(lmp_file,cif_file,type_map=None,lattice_type="orthorhombic",space_group="P 1",):
     type_map = parse_type_map(type_map)
@@ -82,9 +121,11 @@ def lmp_to_cif(lmp_file,cif_file,type_map=None,lattice_type="orthorhombic",space
     if zlo is None or zhi is None:
         raise ValueError("Could not find zlo/zhi bounds in LMP file.")
 
-    a = xhi - xlo
-    b = yhi - ylo
-    c = zhi - zlo
+    lx = xhi - xlo
+    ly = yhi - ylo
+    lz = zhi - zlo
+
+    a, b, c, alpha, beta, gamma = get_cell_parameters(xlo,xhi,ylo,yhi,zlo,zhi,xy,xz,yz)
 
     atoms.sort(key=lambda atom: atom[0])
 
@@ -95,9 +136,9 @@ def lmp_to_cif(lmp_file,cif_file,type_map=None,lattice_type="orthorhombic",space
         outfile.write(f"_cell_length_a                {a:.12f}\n")
         outfile.write(f"_cell_length_b                {b:.12f}\n")
         outfile.write(f"_cell_length_c                {c:.12f}\n")
-        outfile.write("_cell_angle_alpha             90.0\n")
-        outfile.write("_cell_angle_beta              90.0\n")
-        outfile.write("_cell_angle_gamma             90.0\n")
+        outfile.write("_cell_angle_alpha             {alpha:.8f}\n")
+        outfile.write("_cell_angle_beta              {beta:.8f}\n")
+        outfile.write("_cell_angle_gamma             {gamma:.8f}\n")
         outfile.write(f"_symmetry_cell_setting        '{lattice_type}'\n")
         outfile.write(f"_symmetry_space_group_name_H-M   '{space_group}'\n\n")
         outfile.write("loop_\n")
@@ -112,13 +153,13 @@ def lmp_to_cif(lmp_file,cif_file,type_map=None,lattice_type="orthorhombic",space
 
         for atom_id, atom_type, x, y, z in atoms:
             symbol = atom_type_to_symbol(atom_type, type_map)
-
-            frac_x = (x - xlo) / a
-            frac_y = (y - ylo) / b
-            frac_z = (z - zlo) / c
-
             label = f"{symbol}{atom_id}"
+
+            fx, fy, fz = cartesian_to_fractional(x,y,z,xlo,ylo,zlo,lx,ly,lz,xy,xz,yz)
 
             outfile.write(
                 f"{label:>8s} {symbol:>4s} "
-                f"{frac_x:12.8f} {frac_y:12.8f} {frac_z:12.8f}\n")
+                f"{fx:12.8f} {fy:12.8f} {fz:12.8f}\n")
+
+if __name__ == "__main__":
+    lmp_to_cif("0kbar_init.lmp", "0kbar_init.cif", type_map={1: "O", 2: "H"},lattice_type="orthorhombic",space_group="P 1",)

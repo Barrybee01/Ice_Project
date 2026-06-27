@@ -160,6 +160,3 @@ def lmp_to_cif(lmp_file,cif_file,type_map=None,lattice_type="orthorhombic",space
             outfile.write(
                 f"{label:>8s} {symbol:>4s} "
                 f"{fx:12.8f} {fy:12.8f} {fz:12.8f}\n")
-
-if __name__ == "__main__":
-    lmp_to_cif("0kbar_init.lmp", "0kbar_init.cif", type_map={1: "O", 2: "H"},lattice_type="orthorhombic",space_group="P 1",)

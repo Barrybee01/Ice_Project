@@ -6,6 +6,7 @@ I will be slowly developing a command-line tool so that all of the converter scr
 - `.lammpstrj` to a modified `.xyz` trajectory
 - `.cif` ↔ `.lmp` (experimental)
 - `.xyz` ↔ `.cif` (experimental)
+- `.gro` ↔ `.xyz`
 
 ## Data Prerequisites:
 - `.xyz` files need to have the cell parameters in the comment line.

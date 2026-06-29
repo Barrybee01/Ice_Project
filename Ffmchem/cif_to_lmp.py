@@ -44,7 +44,7 @@ def unscale_coordinates(xs, ys, zs, cell_lengths):
     z = zs * cell_lengths[2]
     return x, y, z
 
-def cif_to_lmp(cif_file, output_lmp, symbol_map=None):
+def cif_to_lmp(cif_file, output_lmp, symbol_map=None, mass_map=None):
     symbol_map = parse_symbol_map(symbol_map)
 
     with open(cif_file, "r") as infile:
@@ -161,6 +161,10 @@ def cif_to_lmp(cif_file, output_lmp, symbol_map=None):
         raise ValueError("Could not find atom loop with _atom_site_type_symbol and fractional coordinates.")
 
     atom_types = sorted(set(atom[0] for atom in atoms))
+    if mass_map is None:
+        mass_map = {atom_type: 1.0 for atom_type in atom_types}
+
+    type_map = {atom_type: symbol for symbol, atom_type in symbol_map.items()}
 
     with open(output_lmp, "w") as outfile:
         outfile.write("# Generated from CIF\n\n")
@@ -170,6 +174,13 @@ def cif_to_lmp(cif_file, output_lmp, symbol_map=None):
         outfile.write(f"0.0 {ly:.10f} ylo yhi\n")
         outfile.write(f"0.0 {lz:.10f} zlo zhi\n")
         outfile.write(f"{xy:.10f} {xz:.10f} {yz:.10f} xy xz yz\n\n")
+        outfile.write("Masses\n\n")
+
+        for atom_type in atom_types:
+            mass = mass_map.get(atom_type, 1.0)
+            symbol = type_map.get(atom_type, "")
+            outfile.write(f"{atom_type:12d} {mass:15.8f} # {symbol}\n")
+
         outfile.write("Atoms # atomic\n\n")
 
         for atom_id, (atom_type, x, y, z) in enumerate(atoms, start=1):

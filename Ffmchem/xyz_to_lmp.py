@@ -94,4 +94,4 @@ def xyz_to_lmp(xyz_file, lmp_file, symbol_map=None, mass_map=None):
 
 
 if __name__ == "__main__": #to test
-    xyz_to_lmp("iceIV_ortho_x464.xyz","iceIV_ortho_x464_from_xyz.lmp",symbol_map={"O": 1, "H": 2},)
+    xyz_to_lmp("iceIV_ortho_x464.xyz","iceIV_ortho_x464_from_xyz.lmp",symbol_map={"O": 1, "H": 2},mass_map={1: 15.999, 2: 1.008})

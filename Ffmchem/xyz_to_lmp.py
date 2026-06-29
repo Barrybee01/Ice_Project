@@ -16,7 +16,7 @@ def symbol_to_atom_type(symbol, symbol_map=None):
     return symbol_map[symbol]
 
 
-def xyz_to_lmp(xyz_file, lmp_file, symbol_map=None):
+def xyz_to_lmp(xyz_file, lmp_file, symbol_map=None, mass_map=None):
     symbol_map = parse_symbol_map(symbol_map)
 
     with open(xyz_file, "r") as infile:
@@ -63,6 +63,10 @@ def xyz_to_lmp(xyz_file, lmp_file, symbol_map=None):
         atoms.append((atom_id, atom_type, x, y, z))
 
     atom_types = sorted(set(atom[1] for atom in atoms))
+    if mass_map is None:
+        mass_map = {atom_type: 1.0 for atom_type in atom_types}
+
+    type_map = {atom_type: symbol for symbol, atom_type in symbol_map.items()}
 
     with open(lmp_file, "w") as outfile:
         outfile.write("# Generated from XYZ\n\n")
@@ -73,6 +77,12 @@ def xyz_to_lmp(xyz_file, lmp_file, symbol_map=None):
         outfile.write(f"0.0 {b:.10f} ylo yhi\n")
         outfile.write(f"0.0 {c:.10f} zlo zhi\n")
         outfile.write(f"{xy:.10f} {xz:.10f} {yz:.10f} xy xz yz\n\n")
+
+        outfile.write("Masses\n\n")
+        for atom_type in atom_types:
+            mass = mass_map.get(atom_type, 1.0)
+            symbol = type_map.get(atom_type, "")
+            outfile.write(f"{atom_type:12d} {mass:15.8f} # {symbol}\n")
 
         outfile.write("\n")
         outfile.write("Atoms # atomic\n\n")

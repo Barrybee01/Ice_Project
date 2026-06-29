@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ffmchem"
+version = "1.0.0"
+description = "A command-line tool for converting atomistic structure file formats."
+readme = "README.md"
+requires-python = ">=3.9"
+
+authors = [{name = "Rielly Castle"}]
+
+dependencies = ["numpy",]
+
+[project.scripts]
+ffmchem = "cli:main"
+
+[tool.setuptools]
+py-modules = [
+    "cli",
+    "cif_to_lmp",
+    "lmp_to_cif",
+    "lmp_to_xyz",
+    "lmp_to_modified_xyz",
+    "xyz_to_lmp",
+    "xyz_to_cif",
+    "cif_to_xyz",
+    "xyz_to_gro",
+    "gro_to_xyz",
+    "lammpstrj_to_xyz",
+    "lammpstrj_to_modified_xyz"]

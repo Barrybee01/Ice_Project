@@ -7,7 +7,7 @@ Contains the important python scripts used to post-process LAMMPS trajectories u
 3. lmp_to_xyz.py
 4. cif_to_lmp.py
 
-All file converting scripts can be found in the [Converter scripts](https://github.com/Barrybee01/Ice_Project/tree/main/Converter_scripts) folder.
+All file converting scripts can be found in the [Converter scripts](https://github.com/Barrybee01/Ice_Project/tree/main/Converter_scripts) folder. No other converter scripts will be added to this repo, and the current scripts in this repo will no longer be maintained. I have made a command-line tool called [Ffmchem](https://github.com/Barrybee01/Ffmchem) that uses these converter scripts.
 
 The first two scripts require a `dump.lammpstrj` file as input. The last script only requires a single frame of the trajectory file, in the form of `structure_file.lmp`. The first script reads in the LAMMPS trajectory and returns the entire trajectory in an XYZ format. The second script, for the most part, does the exact same thing as the first script, however it produces a modified XYZ trajectory where the cell parameters are stored in the comment line, and the atom symbols are instead numbers representing atom type. The last script does the same job as the first script, but only takes in a single frame to return a single XYZ file.
 

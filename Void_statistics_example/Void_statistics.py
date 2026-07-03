@@ -1,10 +1,11 @@
 import os
 import ase.io
 import homcloud.interface as hc
+import homcloud.interface.exceptions
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import scipy
 
 def make_PD(xyz_file, sample_name, output_dir):
     amorph_ice = ase.io.read(xyz_file)
@@ -32,6 +33,39 @@ def compute_birth_lifetime(pd1):
 
     df = pd.DataFrame({"Birth": births, "Death": deaths, "Lifetime": lifetimes})
     return df
+
+
+def calculate_atoms_per_cage(pair):
+    try:
+        stable_volume = pair.stable_volume(1e-4)
+        boundary_points = stable_volume.boundary_points()
+        n_atoms_per_cage = len(boundary_points)
+
+        return n_atoms_per_cage
+
+    except (TypeError, AssertionError, homcloud.interface.exceptions.VolumeNotFound): #I think I should fix this so that it is a try/except case
+        return None
+
+
+def calculate_atoms_per_cage_for_wedges(pd1, wedge_pair_df):
+    pairs = list(pd1.pairs())
+
+    atoms_per_cage_records = []
+
+    for _, row in wedge_pair_df.iterrows():
+        pair_index = int(row["pair_index"])
+        pair = pairs[pair_index]
+
+        n_atoms_per_cage = calculate_atoms_per_cage(pair)
+
+        if n_atoms_per_cage is None:
+            continue
+
+        atoms_per_cage_records.append({"pair_index": pair_index, "birth": row["birth"], "death": row["death"], "lifetime": row["lifetime"], "angle_degrees": row["angle_degrees"], "wedge": row["wedge"], "n_atoms_per_cage": n_atoms_per_cage})
+
+    atoms_per_cage_df = pd.DataFrame(atoms_per_cage_records)
+
+    return atoms_per_cage_df
 
 
 def save_figure(fig, output_dir, filename):
@@ -193,6 +227,11 @@ def analyze_xyz_file(xyz_file, sample_name, output_dir, n_wedges):
     wedge_pair_csv_path = os.path.join(output_dir, f"{sample_name}_wedge_pairs.csv")
     wedge_pair_df.to_csv(wedge_pair_csv_path, index=False)
     print(f"Saved wedge pair CSV: {wedge_pair_csv_path}")
+
+    atoms_per_cage_df = calculate_atoms_per_cage_for_wedges(pd1, wedge_pair_df)
+    atoms_per_cage_csv_path = os.path.join(output_dir, f"{sample_name}_atoms_per_cage.csv")
+    atoms_per_cage_df.to_csv(atoms_per_cage_csv_path, index=False)
+    print(f"Saved atoms per cage CSV: {atoms_per_cage_csv_path}")
 
     make_PD_plot(pd1=pd1, sample_name=sample_name, output_dir=output_dir)
 

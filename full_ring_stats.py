@@ -106,8 +106,11 @@ for pair in my_pairs:
             elif death_symbols.count('H') == 2 and death_symbols.count('O') == 1:  # OH pair
                 ring_size = np.sqrt(R_H**2 + death_scale) + np.sqrt(R_O**2 + death_scale)
                 pair_type = "OH"
+            elif death_symbols.count('O') == 2 and death_symbols.count('H') == 1:
+                ring_size = 2 * np.sqrt(R_O**2 + death_scale)
+                pair_type = "OO"
             else:
-                continue  # Skip invalid pair types
+                continue
 
             boundary_points = np.array(boundary_points)
             if boundary_points.shape[1] == 3:

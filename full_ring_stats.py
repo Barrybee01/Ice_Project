@@ -31,24 +31,33 @@ print(f'The maximum number of atoms accepted in a ring is {max_atoms}')
 batch_size = 1
 
 def fit_plane(points):
-    A = np.c_[points[:, 0], points[:, 1], np.ones(points.shape[0])]
-    b = points[:, 2]
-    coeff, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
-    return coeff  # a, b, c
+    centroid = np.mean(points, axis=0)
+    centered_points = points - centroid
+    _, _, vh = np.linalg.svd(centered_points) #this is supposed to be a better way to make best fit planes
+    normal = vh[-1]
+    return centroid, normal
 
-def calculate_flatness(points, plane_coeff):
-    a, b, c = plane_coeff
-    distances = []
-    denominator = np.sqrt(a**2 + b**2 + 1)
-
-    for point in points:
-        x, y, z = point
-        distance = abs(a * x + b * y + c - z) / denominator
-        distances.append(distance)
-
+def calculate_flatness(points, centroid, normal):
+    distances = np.abs(np.dot(points - centroid, normal)) #updated so now it takes in the centroid
     total_distance = np.sum(distances)
     degree_of_flatness = total_distance / len(points)
     return degree_of_flatness
+
+def calculate_roundness(points, centroid, normal): #how circular does the projection of the ring look
+    centered_points = points - centroid
+
+    # Remove the component perpendicular to the best-fit plane
+    perpendicular_components = np.outer(np.dot(centered_points, normal), normal)
+    projected_points = centered_points - perpendicular_components
+
+    # Radial distance of each projected atom from the projected centroid
+    radial_distances = np.linalg.norm(projected_points, axis=1)
+    mean_radius = np.mean(radial_distances)
+    radial_std = np.std(radial_distances)
+
+    radial_distortion = radial_std / mean_radius
+    roundness = 1.0 - radial_distortion
+    return roundness
 
 def compute_apf(pairs):
     apf_data = []
@@ -114,9 +123,10 @@ for pair in my_pairs:
 
             boundary_points = np.array(boundary_points)
             if boundary_points.shape[1] == 3:
-                plane_coeff = fit_plane(boundary_points)
-                flatness = calculate_flatness(boundary_points, plane_coeff)
-                output_data.append((num_atoms, ring_size, flatness, pair_type, birth_scale, death_scale))
+                centroid, normal = fit_plane(boundary_points)
+                flatness = calculate_flatness(boundary_points, centroid, normal)
+                roundness = calculate_roundness(boundary_points, centroid, normal)
+                output_data.append((num_atoms, ring_size, flatness, roundness, pair_type, birth_scale, death_scale))
     except (TypeError, AssertionError, homcloud.interface.exceptions.VolumeNotFound):
         continue
 
@@ -127,8 +137,8 @@ all_data = comm.gather(output_data, root=0)
 if rank == 0:
     with open("Persistent_island_ring_stats.txt", "w") as f:
         for proc_data in all_data:
-            for atom_count, ring_size, flatness, pair_type, birth_scale, death_scale in proc_data:
-                f.write(f"{atom_count},{ring_size:.6f},{flatness:.6f},{pair_type},{birth_scale:.6f},{death_scale:.6f}\n")
+            for atom_count, ring_size, flatness, roundness, pair_type, birth_scale, death_scale in proc_data:
+                f.write(f"{atom_count},{ring_size:.6f},{flatness:.6f},{roundness:.6f},{pair_type},{birth_scale:.6f},{death_scale:.6f}\n")
     print(f"Finished processing. Results saved to 'Persistent_island_ring_stats.txt'.")
 
     # Compute and save APF for the same accepted characteristic region

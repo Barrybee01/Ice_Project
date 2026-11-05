@@ -140,7 +140,7 @@ for pair in my_pairs:
             boundary_points = np.array(boundary_points)
             if boundary_points.shape[1] == 3:
                 plane_coeff = fit_plane(boundary_points)
-                flatness = calculate_flatness(boundary_points,plane_coeff))
+                flatness = calculate_flatness(boundary_points,plane_coeff)
                 roundness = calculate_roundness(boundary_points,plane_coeff)
                 output_data.append((num_atoms, ring_size, flatness, roundness, pair_type, birth_scale, death_scale))
     except (TypeError, AssertionError, homcloud.interface.exceptions.VolumeNotFound):

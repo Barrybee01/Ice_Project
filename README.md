@@ -65,25 +65,28 @@ A more advanced example of using the ring statistics scripts is currently in pro
 ## Miscellaneous Scripts
 1. supercell_subdividor_GPU_boosted.py
 2. RDF_contour.py
+3. Density_functions_blocked-stats.py
 
 The script `supercell_subdividor_GPU_boosted.py` is a GPU-oriented script that will perform local density calculations on larger supercells. Should only need an XYZ file, or something related, for this to run. An interesting use case would be to observe local fluctuations of other physical properties.
 
 The script `RDF_contour.py` takes a `.rdf` file that is generated from a LAMMPS simulation and creates a contour plot of the RDF over a time series.
 
-## Active projects
+The script `Density_functions_blocked-stats.py` takes the density time series data and performs blocked statistics on the time series to get the average density over the time series, as well as an appropriate error estimate instead of taking the standard error of the time series.
+
+# Active projects
 # Advanced Ring Analysis
 This folder contains code under active development that will perform PCA and logistic regression analysis using the persistent homology output.
 
-# Void Statistics
+## Void Statistics
 This folder contains code under active development that will eventually be merged with the rest of the persistent homology scripts. This series of scripts will be used to analyze data using the 2nd persistent homology group, which focuses on void/pore features of the system's topology.
 
-# Ovito Modifiers
+## Ovito Modifiers
 This folder contains any custom Ovito modifiers I have used for this project. More will be added over time.
 
-# Local Order Metric
+## Local Order Metric
 This folder will contain code used to calculate the local order metric of a glassy system.
 
-## Dependencies
+# Dependencies
 All of these calculations can be performed with a single Python environment. Listed below are the requirements for a Python/3.10 environment.
 - ase/3.10.0
 - fastparquet/2026.3.0

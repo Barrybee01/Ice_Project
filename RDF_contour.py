@@ -5,104 +5,80 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import seaborn as sns
 
-def finalize_block(data, timestep, initial_timestep, timeunit="ns"):
-    df = pd.DataFrame(data,columns=["ID","r","RDF1","RDF2","RDF3","RDF4","RDF5","RDF6"])
-
-    if timeunit == "ns":
-        df["Timestep"] = (timestep - initial_timestep) / 1e6
-    elif timeunit == "ps":
-        df["Timestep"] = (timestep - initial_timestep) / 1e3
-
-    return df
-
-
-def read_rdf_file(file_path, timeunit="ns"):
-    all_data = []
-    with open(file_path, "r") as f:
-        lines = f.readlines()
+def read_rdf_file(file_path):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
 
     data = []
     timestep = None
+    n_data_points = None
     initial_timestep = None
 
     for line in lines:
-        if line.startswith("#"):
+        if line.startswith('#'):
             continue
-
-        fields = line.split()
-        if len(fields) == 2:
+        if len(line.split()) == 2:
+            # Extract timestep and number of data points
             if timestep is not None:
-                all_data.append(finalize_block(data,timestep,initial_timestep,timeunit))
+                # Store previous timestep data if any
+                df = pd.DataFrame(data, columns=['ID', 'r', 'RDF1', 'RDF2', 'RDF3', 'RDF4', 'RDF5', 'RDF6'])
+                df['Timestep'] = (timestep - initial_timestep) / 1e6  # Convert to ns
+                all_data.append(df)
+                data = []
 
-            timestep, nrows = map(int, fields)
+            timestep, n_data_points = map(int, line.split())
             if initial_timestep is None:
                 initial_timestep = timestep
-            data = []
         else:
-            data.append(list(map(float, fields)))
+            data.append(list(map(float, line.split())))
 
+    # Add the last collected data
     if data:
-        all_data.append(finalize_block(data,timestep,initial_timestep,timeunit))
+        df = pd.DataFrame(data, columns=['ID', 'r', 'RDF1', 'RDF2', 'RDF3', 'RDF4', 'RDF5', 'RDF6'])
+        df['Timestep'] = (timestep - initial_timestep) / 1e6  # Convert to ns
+        all_data.append(df)
 
     return pd.concat(all_data, ignore_index=True)
 
 
-def convert_rdf_to_ir(data, rdf_column):
-    data = data.copy()
-    g = np.maximum(data[rdf_column], 1e-10)
-    data["I(r)"] = (g * np.log(g) - g + 1) * data["r"]**2
-    return data
+def create_contour_plot(data, rdf_column):
+    """
+    Creates a contour plot of the RDF data.
+    """
+    # Pivot the DataFrame to get r, Timestep, and the selected RDF column
+    pivot_table = data.pivot_table(index='Timestep', columns='r', values=rdf_column)
 
-def create_contour_plot(data,value_column,cbar_label,outfile):
-    pivot_table = data.pivot_table(index="Timestep",columns="r",values=value_column,)
     X, Y = np.meshgrid(pivot_table.columns, pivot_table.index)
     Z = pivot_table.values
-    sns.set_theme(style="white")
+
+    line_list = [0.095, 0.24, 0.385, 0.92, 1.315, 1.515]
+
     plt.figure(figsize=(12, 8))
-    cp = plt.contourf(X,Y,Z,levels=100,cmap="icefire",norm=colors.PowerNorm(0.8))
+    cp = plt.contourf(X, Y, Z, cmap='magma', levels=90)
+    plt.colorbar(cp, label=r'$g_{OO}(r)$')
+    plt.xlabel(r'Radial Distance ($\AA$)', fontsize=12)
+    plt.ylabel('Timestep (ns)', fontsize=12)
+    plt.show()
+
+def create_contour_plot_seaborn(data, rdf_column):
+    pivot_table = data.pivot_table(index='Timestep', columns='r', values=rdf_column)
+    X, Y = np.meshgrid(pivot_table.columns, pivot_table.index)
+    Z = pivot_table.values
+
+    sns.set_theme(style="whitegrid")
+    plt.figure(figsize=(12, 8))
+    cp = plt.contourf(X, Y, Z, cmap='icefire', levels=90, norm=colors.PowerNorm(0.8))
     cbar = plt.colorbar(cp)
-    cbar.set_label(cbar_label,fontsize=16)
-    plt.xlabel(r"Radial Distance ($\AA$)",fontsize=18)
-    plt.ylabel("Time (ns)",fontsize=18)
-    plt.tight_layout()
-    plt.savefig(outfile,dpi=300,bbox_inches="tight")
-    plt.close()
+    # Set colorbar label with font properties
+    cbar.set_label(r'$g_{OH}(r)$', fontsize=17, fontweight='bold', family='serif')
+    plt.xlabel(r'Radial Distance ($\AA$)', fontsize=20)
+    plt.ylabel('Timestep (ns)', fontsize=20)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    plt.show()
 
-def create_waterfall_plot(data,value_column,ylabel,outfile,N=3,offset=0.5):
-    sns.set_theme(style="white")
-    timesteps = np.sort(data["Timestep"].unique())
-    selected_timesteps = timesteps[::N]
-    cmap = sns.color_palette("flare", as_cmap=True)
-    plt.figure(figsize=(12, 8))
+file_path = 'LDA_formation.rdf'
+all_data = []
+rdf_data = read_rdf_file(file_path)
 
-    for i, timestep in enumerate(selected_timesteps):
-        subset = data[
-            data["Timestep"] == timestep]
-
-        plt.plot(subset["r"],subset[value_column] + i * offset,color=cmap(i / max(len(selected_timesteps) - 1, 1)),lw=1.5,alpha=0.9,label=f"{timestep:.3f} ns")
-
-    plt.xlabel(r"Radial Distance ($\AA$)",fontsize=18)
-    plt.ylabel(ylabel,fontsize=18)
-    plt.xlim(0.5, 6)
-    plt.tick_params(axis="both",which="major",labelsize=14)
-    plt.legend(title="Time (ns)",loc="center left",bbox_to_anchor=(1.02, 0.5),frameon=False,reverse=True)
-    plt.tight_layout()
-    plt.savefig(outfile,dpi=300,bbox_inches="tight")
-    plt.close()
-
-def analyze_file(rdf_file):
-    data = read_rdf_file(rdf_file)
-    rdf_pairs = {"RDF1": "OO","RDF3": "OH","RDF5": "HH"}
-    basename = os.path.splitext(os.path.basename(rdf_file))[0]
-    for rdf_column, pair in rdf_pairs.items():
-        create_contour_plot(data=data,value_column=rdf_column,cbar_label=fr"$g_{{{pair}}}(r)$",outfile=f"{basename}_{pair}_RDF_contour.png")
-        create_waterfall_plot(data=data,value_column=rdf_column,ylabel=fr"$g_{{{pair}}}(r)$",outfile=f"{basename}_{pair}_RDF_waterfall.png")
-
-        ir_data = convert_rdf_to_ir(data,rdf_column)
-        create_contour_plot(data=ir_data,value_column="I(r)",cbar_label=fr"$I_{{{pair}}}(r)$",outfile=f"{basename}_{pair}_IR_contour.png")
-        create_waterfall_plot(data=ir_data,value_column="I(r)",ylabel=fr"$I_{{{pair}}}(r)$",outfile=f"{basename}_{pair}_IR_waterfall.png")
-
-if __name__ == "__main__":
-    rdf_files = sorted([f for f in os.listdir(".") if f.endswith(".rdf")])
-    for rdf_file in rdf_files:
-        analyze_file(rdf_file)
+create_contour_plot(rdf_data, 'RDF1') #For water, there are 3 pair types, so I have RDF1, RDF2, and RDF3. Chage according to species types
+create_contour_plot_seaborn(rdf_data, 'RDF3')

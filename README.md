@@ -26,7 +26,7 @@ The next part of this data pipeline is the `BondAnalysis.py` script. **This scri
 
 The remaining scripts are used to study vibrational spectra of ice. The first part of this additional analysis is to use `output_to_parquet.py`. This script takes in the HOH, OH1 and OH2 time series files from the last step and converts them to parquet files. These files are column-oriented, so this allows for the individual bond/pair series to occupy its own column in the file, and can be parsed easily.
 
-Vibrational spectra are produced by performing a FFT on the input time series data. The `fft_parquet_HOH.py` script has the capability of doing this. The result is the vibrational spectra produced by individual water molecules. Because of my own skill issue, I could not figure out iterative reading/processing/writing of parquet files, so the output of these tasks are HDF5 files.
+Vibrational spectra are produced by performing an FFT on the input time series data. The `fft_parquet_HOH.py` script has the capability of doing this. The result is the vibrational spectra produced by individual water molecules. Because of my own skill issue, I could not figure out iterative reading/processing/writing of parquet files, so the output of these tasks is HDF5 files.
 
 To observe the ensemble average (and to see an actual clear spectrum), the individual molecule components are summed together with the `fft_sum.py` script. These read in the HDF5 files from the last step, sum together all of the columns in the input file, and return a text file with the resultant vibrational spectrum.
 
@@ -40,11 +40,12 @@ To observe the ensemble average (and to see an actual clear spectrum), the indiv
 2. full_ring_stats.py
 3. FSDP.py
 
-Persistent homology calculations are employed using the Homcloud Python library. The first 2 scripts do essentially the same job. The only difference is the amount of data used in later ring calculations. The `ring_stats.py` script allows one to use a rectangular or polygon mask to analyze a small region of a persistence diagram, while `full_ring_stats.py` performs the calculations using all features from the persistence diagram. Both scripts require a `.pdgm` input file, and both scripts will perform the same calculations. Current ring statistic calculations are:
+Persistent homology calculations are performed using the Homcloud Python library. The first 2 scripts do essentially the same job. The only difference is the amount of data used in later ring calculations. The `ring_stats.py` script allows one to use a rectangular or polygon mask to analyze a small region of a persistence diagram, while `full_ring_stats.py` performs the calculations using all features from the persistence diagram. Both scripts require a `.pdgm` input file, and both scripts will perform the same calculations. Current ring statistic calculations are:
 
 - Number of atoms per ring
 - Pair type that kills each ring
 - Ring size
+- Ring roundness
 - Degree of ring flatness
 - Accumulative persistence function
 
@@ -67,7 +68,20 @@ A more advanced example of using the ring statistics scripts is currently in pro
 
 The script `supercell_subdividor_GPU_boosted.py` is a GPU-oriented script that will perform local density calculations on larger supercells. Should only need an XYZ file, or something related, for this to run. An interesting use case would be to observe local fluctuations of other physical properties.
 
-The script `RDF_contour.py` takes a `.rdf` file that is generated from a LAMMPS simulation and creates a series of plots from it including contour and waterfall plots.
+The script `RDF_contour.py` takes a `.rdf` file that is generated from a LAMMPS simulation and creates a contour plot of the RDF over a time series.
+
+## Active projects
+# Advanced Ring Analysis
+This folder contains code under active development that will perform PCA and logistic regression analysis using the persistent homology output.
+
+# Void Statistics
+This folder contains code under active development that will eventually be merged with the rest of the persistent homology scripts. This series of scripts will be used to analyze data using the 2nd persistent homology group, which focuses on void/pore features of the system's topology.
+
+# Ovito Modifiers
+This folder contains any custom Ovito modifiers I have used for this project. More will be added over time.
+
+# Local Order Metric
+This folder will contain code used to calculate the local order metric of a glassy system.
 
 ## Dependencies
 All of these calculations can be performed with a single Python environment. Listed below are the requirements for a Python/3.10 environment.

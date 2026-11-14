@@ -74,7 +74,7 @@ The script `RDF_contour.py` takes a `.rdf` file that is generated from a LAMMPS 
 The script `Density_functions_blocked-stats.py` takes the density time series data and performs blocked statistics on the time series to get the average density over the time series, as well as an appropriate error estimate instead of taking the standard error of the time series.
 
 # Active projects
-# Advanced Ring Analysis
+## Advanced Ring Analysis
 This folder contains code under active development that will perform PCA and logistic regression analysis using the persistent homology output.
 
 ## Void Statistics

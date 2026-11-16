@@ -56,6 +56,30 @@ def calculate_flatness(points, plane_coeff):
     degree_of_flatness = total_distance / len(points)
     return degree_of_flatness
 
+def calculate_roundness(points, plane_coeff): #how circular the ring is
+    a, b, c = plane_coeff
+
+    # Unit normal to the fitted plane
+    normal = np.array([a, b, -1.0])
+    normal = normal / np.linalg.norm(normal)
+
+    # Ring centroid
+    centroid = np.mean(points, axis=0)
+    centered_points = points - centroid
+
+    # Project ring points onto the fitted plane
+    perpendicular_components = np.outer(np.dot(centered_points, normal),normal)
+    projected_points = centered_points - perpendicular_components
+
+    # Radial distances from projected centroid
+    radial_distances = np.linalg.norm(projected_points, axis=1)
+    radial_std = np.std(radial_distances)
+    radial_rms = np.sqrt(np.mean(radial_distances**2))
+
+    radial_distortion = radial_std / radial_rms
+    roundness = 1.0 - radial_distortion
+    return roundness
+
 def compute_apf(pairs): #Calculates cumulative lifetime of PD features
     apf_data = []
 
@@ -99,31 +123,33 @@ output_data = []
 
 for pair in my_pairs:
     try:
-        stable_volume = pair.stable_volume(0.1)
+        stable_volume = pair.stable_volume(1e-4)
         boundary_points = stable_volume.boundary_points()
         num_atoms = len(boundary_points)
 
         if num_atoms <= max_atoms:
             # Determine pair type
             death_scale = pair.death
+            birth_scale = pair.birth
             death_symbols = pair.death_position_symbols
-            if death_symbols.count('H') == 3:
-                    ring_size = 2 * (np.sqrt(R_H**2 + death_scale))
-                    pair_type = "HH"
-            elif death_symbols.count('H') == 2 and death_symbols.count('O') == 1:
-                    ring_size = np.sqrt(R_H**2 + death_scale) + np.sqrt(R_O**2 + death_scale)
-                    pair_type = "OH"
+            if death_symbols.count('H') == 3:  # HH pair
+                ring_size = 2 * (np.sqrt(R_H**2 + death_scale))
+                pair_type = "HH"
+            elif death_symbols.count('H') == 2 and death_symbols.count('O') == 1:  # OH pair
+                ring_size = np.sqrt(R_H**2 + death_scale) + np.sqrt(R_O**2 + death_scale)
+                pair_type = "OH"
             elif death_symbols.count('O') == 2 and death_symbols.count('H') == 1:
-                    ring_size = 2 * np.sqrt(R_O**2 + death_scale)
-                    pair_type = "OO"
+                ring_size = 2 * np.sqrt(R_O**2 + death_scale)
+                pair_type = "OO"
             else:
-                    continue
+                continue
 
             boundary_points = np.array(boundary_points)
             if boundary_points.shape[1] == 3:
                 plane_coeff = fit_plane(boundary_points)
                 flatness = calculate_flatness(boundary_points, plane_coeff)
-                output_data.append((num_atoms, ring_size, flatness, pair_type))
+                roundness = calculate_roundness(boundary_points,plane_coeff)
+                output_data.append((num_atoms, ring_size, flatness, roundness, pair_type, birth_scale, death_scale))
     except (TypeError, AssertionError, homcloud.interface.exceptions.VolumeNotFound): #except cases are specifically to handle to memory leak that I think exists in homcloud
         continue
 
@@ -135,7 +161,7 @@ if rank == 0:
     with open("ring_stats.txt", "w") as f:
         for proc_data in all_data:
             for atom_count, ring_size, flatness, pair_type in proc_data:
-                f.write(f"{atom_count},{ring_size:.6f},{flatness:.6f},{pair_type}\n")
+                f.write(f"{atom_count},{ring_size:.6f},{flatness:.6f},{roundness:.6f},{pair_type},{birth_scale:.6f},{death_scale:.6f}\n")
     print(f"Finished processing. Results saved to 'ring_stats.txt'.")
 
     # Compute and save APF for the same accepted characteristic region

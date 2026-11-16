@@ -29,7 +29,7 @@ print('The persistence diagram has been made') #for log file
 #Rectangular mask, uncomment and change relevant_pairs variable if this needs to be used
 #birth_min, birth_max = 0.3, 0.75
 #death_min, death_max = 1.1, 4.0
-from shapely.geometry import Point, Polygon
+
 #COMMENT OUT BELOW LINE IF USING FULL PD
 HDA_maskcoords_H1 = ([0.5, 1.2], [0.6, 1.25], [0.7, 1.35], [0.75, 1.6], [0.75, 2.9], [0.5, 3.6], [0.25, 3.3], [0.25, 1.2]) #vertices of polygon mask, adjust when needed
 max_atoms = 30

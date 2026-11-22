@@ -131,7 +131,7 @@ for pair in my_pairs:
             elif death_symbols.count('H') == 2 and death_symbols.count('O') == 1:  # OH pair
                 ring_size = np.sqrt(R_H**2 + death_scale) + np.sqrt(R_O**2 + death_scale)
                 pair_type = "OH"
-            elif death_symbols.count('O') == 2 and death_symbols.count('H') == 1:
+            elif death_symbols.count('O') == 3:
                 ring_size = 2 * np.sqrt(R_O**2 + death_scale)
                 pair_type = "OO"
             else:
@@ -152,6 +152,7 @@ all_data = comm.gather(output_data, root=0)
 # Process 0 writes the output to a file
 if rank == 0:
     with open("Persistent_island_ring_stats.txt", "w") as f:
+        f.write("atom_count,ring_size,flatness,roundness,pair_type,birth_scale,death_scale\n")
         for proc_data in all_data:
             for atom_count, ring_size, flatness, roundness, pair_type, birth_scale, death_scale in proc_data:
                 f.write(f"{atom_count},{ring_size:.6f},{flatness:.6f},{roundness:.6f},{pair_type},{birth_scale:.6f},{death_scale:.6f}\n")

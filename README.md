@@ -38,6 +38,7 @@ To observe the ensemble average (and to see an actual clear spectrum), the indiv
 ## Persistent Homology Analysis Scripts
 1. full_ring_stats.py
 2. FSDP.py
+3. view_rings_in_cell.py
 
 Persistent homology calculations are performed using the Homcloud Python library. The `full_ring_stats.py` script analyzes the entire persistence diagram and calculates various ring parameters. The original `ring_stats.py` script did the same calculation but had a user-defined mask within the script. This feature has been deprecated, and the old script has been removed. The specific ring properties of interest are:
 
@@ -51,6 +52,8 @@ Persistent homology calculations are performed using the Homcloud Python library
 These two scripts will output two text files: one containing the information of the APF, and the other a space-delimited file containing the output of the other calculations, as well as the birth and death index of any ring used in the calculation.
 
 The `FSDP.py` script requires a CSV file that contains the ring sizes for each type of ring seen in the persistence diagram (4-membered ring, 5-membered ring, etc). The script outputs a figure of the FSDP containing the individual loop contributions.
+
+The `view_rings_in_cell.py` script allows the user to visualize a set of rings within the original input structure. A polygon mask is required for the script to work. Once a region of the persistence diagram has been selected, the script will create a web browser viewer of the ring system. 
 
 **KNOWN PROBLEMS AND FUTURE CHANGES:**
 - Parallelization has been implemented in the `full_ring_stats.py` script, but it has not been benchmarked to suggest any specific amount of resources given a specific input data size.

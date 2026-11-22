@@ -7,7 +7,7 @@ Contains the important python scripts used to post-process LAMMPS trajectories u
 3. lmp_to_xyz.py
 4. cif_to_lmp.py
 
-All file converting scripts can be found in the [Converter scripts](https://github.com/Barrybee01/Ice_Project/tree/main/Converter_scripts) folder. No other converter scripts will be added to this repo, and the current scripts in this repo will no longer be maintained. I have made a command-line tool called [Ffmchem](https://github.com/Barrybee01/Ffmchem) that uses these converter scripts.
+All file-converting scripts can be found in the [Converter scripts](https://github.com/Barrybee01/Ice_Project/tree/main/Converter_scripts) folder. No other converter scripts will be added to this repo, and the current scripts in this repo will no longer be maintained. I have made a command-line tool called [Ffmchem](https://github.com/Barrybee01/Ffmchem) that uses these converter scripts.
 
 The first two scripts require a `dump.lammpstrj` file as input. The last script only requires a single frame of the trajectory file, in the form of `structure_file.lmp`. The first script reads in the LAMMPS trajectory and returns the entire trajectory in an XYZ format. The second script, for the most part, does the exact same thing as the first script, however it produces a modified XYZ trajectory where the cell parameters are stored in the comment line, and the atom symbols are instead numbers representing atom type. The last script does the same job as the first script, but only takes in a single frame to return a single XYZ file.
 
@@ -36,11 +36,10 @@ To observe the ensemble average (and to see an actual clear spectrum), the indiv
 - It should be noted that there are inherent problems with this type of simulation. In order to be able to resolve vibrational spectra, you will need a small timestep, and will likely need to sample every few timesteps instead of dumping every 100 or more timesteps. Storage will likely be a problem, and that is an inherent issue with this analysis. Usage of `lammpstrj_to_xyz_V3.py` to scrape out everything except for particle positions will be incredibly useful to optimize storage.
 
 ## Persistent Homology Analysis Scripts
-1. ring_stats.py
-2. full_ring_stats.py
-3. FSDP.py
+1. full_ring_stats.py
+2. FSDP.py
 
-Persistent homology calculations are performed using the Homcloud Python library. The first 2 scripts do essentially the same job. The only difference is the amount of data used in later ring calculations. The `ring_stats.py` script allows one to use a rectangular or polygon mask to analyze a small region of a persistence diagram, while `full_ring_stats.py` performs the calculations using all features from the persistence diagram. Both scripts require a `.pdgm` input file, and both scripts will perform the same calculations. Current ring statistic calculations are:
+Persistent homology calculations are performed using the Homcloud Python library. The `full_ring_stats.py` script analyzes the entire persistence diagram and calculates various ring parameters. The original `ring_stats.py` script did the same calculation but had a user-defined mask within the script. This feature has been deprecated, and the old script has been removed. The specific ring properties of interest are:
 
 - Number of atoms per ring
 - Pair type that kills each ring
@@ -49,15 +48,14 @@ Persistent homology calculations are performed using the Homcloud Python library
 - Degree of ring flatness
 - Accumulative persistence function
 
-These two scripts will output two text files: one containing the information of the APF, and the other is a space-delimited file containing the output of the other calculations, as well as the birth and death index of any ring used in the calculation.
+These two scripts will output two text files: one containing the information of the APF, and the other a space-delimited file containing the output of the other calculations, as well as the birth and death index of any ring used in the calculation.
 
 The `FSDP.py` script requires a CSV file that contains the ring sizes for each type of ring seen in the persistence diagram (4-membered ring, 5-membered ring, etc). The script outputs a figure of the FSDP containing the individual loop contributions.
 
 **KNOWN PROBLEMS AND FUTURE CHANGES:**
-- Parallelization has been implemented in the `ring_stats.py` script, but it has not been benchmarked to suggest any specific amount of resources given a specific input data size.
-- The `ring_stats.py` and `full_ring_stats.py` scripts will eventually be merged. I envision a user-defined arg that one can change so that the script knows the extent of the persistence diagram to be studied (rectangular mask, polygon mask, full PD).
+- Parallelization has been implemented in the `full_ring_stats.py` script, but it has not been benchmarked to suggest any specific amount of resources given a specific input data size.
 - The Homcloud library has been known to contain memory leaks in different versions. This may cause any of the ring statistic scripts to break. There are try/except cases implemented in these scripts to be able to avoid the Homcloud problems that result in OOM issues, but this may need to be modified in the future if similar issues arise.
-- Ring statistics script will be updated to output a series of text files that contain information on the birth, death, and lifetime distributions.
+- Certain versions of Homcloud will require the user to change the version of the PuLP library to 3.2.0 or 3.3.0. Without this, the Homcloud tool cannot build properly, and the stable volume and optimal volume calculations will not work.
 - A script will be developed to further process some of the raw output of the original ring statistics calculations.
 
 A more advanced example of using the ring statistics scripts is currently in production. A script named `Ring_PCA_analysis.py` is to be used to perform PCA and regression analysis between two different data sets of ring statistics.
@@ -87,23 +85,19 @@ This folder contains any custom Ovito modifiers I have used for this project. Mo
 This folder will contain code used to calculate the local order metric of a glassy system.
 
 # Dependencies
-All of these calculations can be performed with a single Python environment. Listed below are the requirements for a Python/3.10 environment.
-- ase/3.10.0
-- fastparquet/2026.3.0
-- h5py/3.16.0
+All of these calculations can be performed with a single Python environment. Listed below are the requirements for a Python/3.13.2 environment.
+- ase/3.26.0
+- h5py/3.15.0
 - matplotlib/3.10.0
-- numpy/1.26.4
-- pandas/2.0.0
-- pyarrow/24.0.0
-- pyqt5/5.15.11
-- pyqt6/6.11.0
-- pyvista/0.48.1
-- pyvistaqt/0.11.4
-- scipy/1.14.0
-- scikit-learn/1.7.2
+- numpy/2.3.3
+- pandas/2.3.3
+- scipy/1.16.2
+- scikit-learn/1.7.1
 - wheel/0.47.0
-- homcloud/4.2.0
-- shapely/2.0.0
+- homcloud/5.0.0
+- PuLP/3.3.0 (There is an issue where certain homcloud features cannot be built without the correct pulp version)
+- shapely/2.0.7
+- py3Dmol/2.5.5
 - seaborn/0.13.2
 - mpi4py
 
